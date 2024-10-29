@@ -44,19 +44,22 @@
 <div class="container" bind:this={editorContainer}></div>
 
 
-<style>
+<style lang="scss">
     div.container {
         display: flex;
         justify-content: center;
         align-items: center;
         position: absolute;
         top: 0;
-        left: 0;
-        right: 30vw;
+        left: $editor-left-edge;
+        right: $editor-right-edge;
         bottom: 0;
-        background: darkslategray;
-        border-right-color: #2d2d2d;
+        background: $panel-background-color;
+        border-right-color: $panel-border-color;
         border-right-style: solid;
         border-right-width: 1px;
+      	border-left-color: $panel-border-color;
+      	border-left-style: solid;
+      	border-left-width: 1px;
     }
 </style>
