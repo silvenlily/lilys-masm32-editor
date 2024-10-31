@@ -1,6 +1,5 @@
 <slot></slot>
 
-
 <style lang="scss">
 
 :global {
