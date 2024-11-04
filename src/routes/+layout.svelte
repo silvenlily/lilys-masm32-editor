@@ -10,11 +10,11 @@
 
     body {
         background: $panel-background-color;
-        color: white;
+        color: $panel-text-color;
     }
 
     div {
-        color: white;
+        color: $panel-text-color;
     }
 }
 

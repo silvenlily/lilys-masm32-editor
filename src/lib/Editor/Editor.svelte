@@ -3,6 +3,7 @@
 	import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
 	import * as asm_defs from '$lib/Editor/monarchAsm';
 	import exampleAsm from '$lib/Editor/example-asm';
+	import PanelLabel from '$lib/PanelLabel.svelte';
 
 	let editor: Monaco.editor.IStandaloneCodeEditor;
 	let monaco: typeof Monaco;
@@ -14,21 +15,22 @@
 		// (onMount() will only be executed in the browser, which is what we want)
 		monaco = (await import('./monaco')).default;
 
-		monaco.editor.defineTheme("asm-dark",asm_defs.asm_theme)
-		monaco.languages.register(asm_defs.asm_extention)
-		monaco.languages.setMonarchTokensProvider("asm",asm_defs.asm_lang_def)
+		monaco.editor.defineTheme('asm-dark', asm_defs.asm_theme);
+		monaco.languages.register(asm_defs.asm_extention);
+		monaco.languages.setMonarchTokensProvider('asm', asm_defs.asm_lang_def);
+		monaco.languages.setLanguageConfiguration('asm', asm_defs.asm_lang_conf);
 		// Your monaco instance is ready, let's display some code!
-		const editor = monaco.editor.create(editorContainer,{
+		const editor = monaco.editor.create(editorContainer, {
 			automaticLayout: true,
-			theme: "asm-dark",
+			theme: 'asm-dark',
 			model: null,
-			language: "asm"
+			language: 'asm'
 		});
 
 		const model = monaco.editor.createModel(
 			exampleAsm,
 			'asm',
-			monaco.Uri.file("/vfs/main.asm")
+			monaco.Uri.file('/vfs/main.asm')
 		);
 		editor.setModel(model);
 	});
@@ -40,26 +42,31 @@
 
 </script>
 
-
-<div class="container" bind:this={editorContainer}></div>
+<div class="wrapper">
+	<PanelLabel>Editor</PanelLabel>
+	<div class="container" bind:this={editorContainer}></div>
+</div>
 
 
 <style lang="scss">
-    div.container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        position: absolute;
-        top: 0;
-        left: $editor-left-edge;
-        right: $editor-right-edge;
-        bottom: 0;
-        background: $panel-background-color;
-        border-right-color: $panel-border-color;
-        border-right-style: solid;
-        border-right-width: 1px;
-      	border-left-color: $panel-border-color;
-      	border-left-style: solid;
-      	border-left-width: 1px;
-    }
+  div.wrapper {
+    position: absolute;
+    left: $editor-left-edge;
+    right: $editor-right-edge;
+    bottom: 0;
+    top: 0;
+    background: $panel-background-color;
+    border-right-color: $panel-border-color;
+    border-right-style: solid;
+    border-right-width: 1px;
+    border-left-color: $panel-border-color;
+    border-left-style: solid;
+    border-left-width: 1px;
+  }
+
+  div.container {
+    margin-top: 2px;
+    width: 100%;
+    height: calc(100vh - $navbar-height);
+  }
 </style>

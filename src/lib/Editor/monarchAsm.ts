@@ -9,6 +9,8 @@ export const asm_theme: Monaco.editor.IStandaloneThemeData = {
 	base: 'vs-dark',
 	inherit: true,
 	rules: [
+		{ token: 'operator', foreground: 'ffaaaa'},
+		{ token: 'number', foreground: 'ddddff'},
 		{ token: 'keyword', foreground: 'a1e6ff' },
 		{ token: 'custom-register', foreground: 'AAFFAA' },
 		{ token: 'custom-type', foreground: 'FFA500' },
@@ -17,7 +19,8 @@ export const asm_theme: Monaco.editor.IStandaloneThemeData = {
 		{ token: 'custom-jump', foreground: 'FF88FF' },
 		{ token: 'custom-label', foreground: 'FFAAFF' },
 		{ token: 'custom-number', foreground: '77DD77' },
-		{ token: 'custom-bracket', foreground: '77DD77' }
+		{ token: 'custom-bracket', foreground: '77DD77' },
+		{ token: 'custom-proc', foreground: '9999FF' }
 	]
 };
 
@@ -41,12 +44,11 @@ export const asm_lang_conf: Monaco.languages.LanguageConfiguration = {
 };
 
 export const asm_lang_def: Monaco.languages.IMonarchLanguage = {
-	// Set defaultToken to invalid to see what you do not tokenize yet
 	ignoreCase: true,
 	tokenPostfix: '.asm',
 
 	compilerDirective: [
-		'proc', 'endp', 'end', 'public'
+		'end', 'public', 'extern'
 	],
 
 	keywords: [
@@ -63,27 +65,25 @@ export const asm_lang_def: Monaco.languages.IMonarchLanguage = {
 		'+', '-', '*'
 	],
 
-	brackets: [
-
-	],
+	brackets: [],
 
 	digits: /\d+(_+\d+)*/,
 
 	// The main tokenizer for our languages
 	tokenizer: {
 		root: [
-			[/^\..*$/, 'custom-compiler-directive'],
 			{ include: '@comment' },
-			[/[ \t\r\n,]+/, 'white'],
+			[/^\..*$/, 'custom-compiler-directive'],
+			[/^\s*(\w*):(?=\s*$|\s*;)/, 'custom-label'],
 			[/(eax|ebx|ecx|edx|esi|edi|esp|ebp|ax|bx|cx|dx|al|bl|cl|dl)/, 'custom-register'],
 			[/(?:\s|^)(jmp|je|jne|jz|jg|jge|jl|jle)\s\w*/, 'custom-jump'],
 			[/(?:\s|^)(cmp)(?=\s|$|,|;)/, 'custom-jump'],
 			[/(?:\s|^)(ret)(?:\s|$|,|;)/, 'custom-call'],
 			[/(?:\s|^)(call )[\w$]*/, 'custom-call'],
 			[/(?:\s|^)(call)(?:\s|$|,|;)/, 'custom-call'],
-			[/^[a-zA-Z_0-9]*:(?=\s*$|\s*;)/, 'custom-label'],
-			[/[+\-\*]/, 'operator'],
-			[/[\[\]]/, 'custom-brackets'],
+			[/[+\-*]/, 'operator'],
+			[/^\s*\w* PROC(?=\s|$|;)/,'custom-proc'],
+			[/^\s*\w* ENDP(?=\s|$|;)/,'custom-proc'],
 			{ include: '@string' },
 
 			[/[a-z_$][\w$]*/, {
@@ -94,6 +94,7 @@ export const asm_lang_def: Monaco.languages.IMonarchLanguage = {
 				}
 			}],
 			[/(@digits)/, 'number'],
+			[/[ \t\r\n,]+/, 'white'],
 		],
 
 		comment: [
