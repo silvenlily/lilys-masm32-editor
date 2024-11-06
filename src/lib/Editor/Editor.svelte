@@ -4,11 +4,16 @@
 	import * as asm_defs from '$lib/Editor/monarchAsm';
 	import exampleAsm from '$lib/Editor/example-asm';
 	import PanelLabel from '$lib/PanelLabel.svelte';
+	import type { Interpreter } from '$lib/AsmInterpreter/Interpreter';
+	import { Parser } from '$lib/AsmInterpreter/parsing/Parser';
 
 	let editor: Monaco.editor.IStandaloneCodeEditor;
 	let monaco: typeof Monaco;
 	let editorContainer: HTMLElement;
 
+	let models: Map<String, Monaco.editor.ITextModel>;
+
+	let interpreter: Interpreter;
 
 	onMount(async () => {
 		// Import our 'monaco.ts' file here
@@ -27,12 +32,19 @@
 			language: 'asm'
 		});
 
-		const model = monaco.editor.createModel(
+		const main = monaco.editor.createModel(
 			exampleAsm,
 			'asm',
 			monaco.Uri.file('/vfs/main.asm')
 		);
-		editor.setModel(model);
+		models.set('/vfs/main.asm', main);
+
+		main.onDidChangeContent((e) => {
+			Parser.get().validate_changes(e, main, '/vfs/main.asm');
+		});
+		editor.setModel(main);
+
+
 	});
 
 	onDestroy(() => {

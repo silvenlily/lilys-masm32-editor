@@ -1,12 +1,9 @@
 <script>
 	import PanelLabel from '$lib/PanelLabel.svelte';
 	import FileButton from '$lib/FileExplorer/FileButton.svelte';
-	import Folder from '$lib/FileExplorer/Folder.svelte';
 </script>
 
-
 <div class="wrapper">
-
 	<PanelLabel>File Explorer</PanelLabel>
 	<div class="files">
 		<FileButton>Main.asm</FileButton>

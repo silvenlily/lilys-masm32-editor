@@ -1,6 +1,6 @@
 <script lang="ts">
 	let { name } = $props();
-	
+
 	function folderDrag() {
 		console.log("dragging")
 	}

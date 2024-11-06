@@ -13,10 +13,7 @@
 
 	div.filewrapper:hover{
 		background-color: color.adjust($panel-background-color, $lightness: 20%)
-
   }
-
-
 
 </style>
 
