@@ -40,7 +40,7 @@
 		models.set('/vfs/main.asm', main);
 
 		main.onDidChangeContent((e) => {
-			Parser.get().validate_changes(e, main, '/vfs/main.asm');
+			Parser.get().validate(e, main, '/vfs/main.asm');
 		});
 		editor.setModel(main);
 
