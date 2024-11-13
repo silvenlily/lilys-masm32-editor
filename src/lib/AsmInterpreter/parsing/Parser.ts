@@ -1,6 +1,7 @@
 import type { MemoryLocation } from '$lib/AsmInterpreter/vSystem/memoryLocation';
 import type Monaco from '$lib/Editor/monaco';
 import type { Procedure } from '$lib/AsmInterpreter/Procedure';
+import { Interpreter } from '$lib/AsmInterpreter/Interpreter';
 
 export interface InstructionLine {
 	instruction: string;
@@ -9,17 +10,22 @@ export interface InstructionLine {
 }
 
 export interface ParseError {
-	severity: string;
-	message: Monaco.MarkerSeverity;
-	position?: {
+	severity: Monaco.MarkerSeverity;
+	message: string;
+	position: {
 		startLineNumber: number, startColumn: number, endLineNumber: number, endColumn: number,
 	};
 }
 
-abstract class LineKey {
+abstract class LineParser {
+	abstract type: 'Directive' | 'Instruction';
+	abstract name: string;
 	abstract tag: RegExp;
+	abstract supported: boolean;
+	abstract unsupported_err_message: string;
+	abstract legal_in_mode: SegmentType[];
 
-	abstract apply(line: ParseLine, parse: Parse): undefined
+	abstract apply?(line: ParseLine, parse: Parse): undefined;
 }
 
 /**
@@ -27,14 +33,14 @@ abstract class LineKey {
  */
 export class Parser {
 	private static singleton: Parser;
-	public line_keys: { [key in SegmentType]: LineKey[] };
+	public line_keys: { [key in SegmentType]: LineParser[] };
 
 	constructor() {
-		let lk: { [key in SegmentType]?: LineKey[] } = {};
+		let lk: { [key in SegmentType]?: LineParser[] } = {};
 		for (let i = 0; i < SegmentTypes.length; i++) {
 			lk[SegmentTypes[i]] = [];
 		}
-		this.line_keys = lk as { [key in SegmentType]: LineKey[] };
+		this.line_keys = lk as { [key in SegmentType]: LineParser[] };
 	}
 
 	static get(): Parser {
@@ -44,34 +50,36 @@ export class Parser {
 		return Parser.singleton;
 	}
 
-	public static register_key(key: LineKey, segments: SegmentType[]) {
+	public static register_key(key: LineParser, segments: SegmentType[]) {
 		let self = Parser.get();
 		for (let i = 0; i < segments.length; i++) {
 			self.line_keys[segments[i]].push(key);
 		}
 	}
 
-	public validate(model: Monaco.editor.ITextModel) {
+	public async validate(model: Monaco.editor.ITextModel, path: string) {
 		let lines = model.getLinesContent();
 		let parse = new Parse(lines);
 
 		parse.strip_white();
-		parse.first_pass();
+		await parse.first_pass();
 		parse.second_pass();
+		let errors = parse.flush_errors();
 
 	}
 
 }
 
-
 type LineType = 'Directive' | 'Instruction'
-type SegmentType = 'init' | 'code' | 'data' | 'proc'
-const SegmentTypes: SegmentType[] = ['init', 'code', 'data', 'proc'];
+
+const SegmentTypes = ['uninitialized', 'initialized', 'code', 'data', 'const', 'procedure'] as const;
+type SegmentType = (typeof SegmentTypes)[number]
 
 interface ParseLine {
 	text: string,
 	type?: LineType,
 	line_number: number
+	whitespace_shift?: number,
 }
 
 export class Parse {
@@ -87,7 +95,7 @@ export class Parse {
 	constructor(lines: string[]) {
 		this.procedures = new Map();
 		this.variables = new Map();
-		this.segment = 'init';
+		this.segment = SegmentTypes[0];
 		this.parse_lines = [];
 		this.errors = [];
 		this.pass = 0;
@@ -122,14 +130,42 @@ export class Parse {
 
 	}
 
-	first_pass() {
+	async first_pass() {
 		this.pass = 1;
 		for (let i = 0; i < this.parse_lines.length; i++) {
 			let line = this.parse_lines[i];
-			let keys: LineKey[] = Parser.get().line_keys[this.segment];
+			let keys: LineParser[] = Parser.get().line_keys[this.segment];
 			for (let j = 0; j < keys.length; j++) {
-				if (line.text.search(keys[j].tag) != -1) {
-					keys[j].apply(line, this);
+				let mhit = line.text.match(keys[j].tag);
+				if (mhit != null) {
+					let parser = keys[j];
+
+					let hit = mhit[0];
+					let starts_at = mhit.index! + (line.whitespace_shift ?? 0);
+					let ends_at = starts_at + hit.length;
+
+					if (!parser.supported) {
+						this.errors.push({
+							message: parser.unsupported_err_message ?? `${parser.name} is not supported`,
+							position: { endColumn: 0, endLineNumber: 0, startColumn: 0, startLineNumber: 0 },
+							severity: (await Interpreter.get_instance()).monaco.MarkerSeverity.Error
+						});
+						return;
+					}
+
+					if (!parser.legal_in_mode.includes(this.segment)) {
+						this.errors.push({
+							message: parser.unsupported_err_message ?? `${parser.name} is not a legal instruction in ${this.segment} segments, legal in segments: ${parser.legal_in_mode.join(', ')}`,
+							position: { endColumn: 0, endLineNumber: 0, startColumn: 0, startLineNumber: 0 },
+							severity: (await Interpreter.get_instance()).monaco.MarkerSeverity.Error
+						});
+					}
+
+					if (parser.apply != undefined) {
+						parser.apply!(line, this);
+					}
+
+
 					break;
 				}
 			}
@@ -138,6 +174,25 @@ export class Parse {
 
 	second_pass() {
 		this.pass = 2;
+	}
+
+	flush_errors(): Monaco.editor.IMarkerData[] {
+		const markers: Monaco.editor.IMarkerData[] = [];
+
+		for (let i = 0; i < this.errors.length; i++) {
+			let err = this.errors[i];
+			let marker: Monaco.editor.IMarkerData = {
+				startLineNumber: err.position.startColumn,
+				startColumn: err.position.startLineNumber,
+				endColumn: err.position.endColumn,
+				endLineNumber: err.position.endLineNumber,
+				message: err.message,
+				severity: err.severity
+			};
+			markers.push(marker);
+		}
+
+		return markers;
 	}
 
 }

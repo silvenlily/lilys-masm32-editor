@@ -4,7 +4,7 @@
 	import * as asm_defs from '$lib/Editor/monarchAsm';
 	import exampleAsm from '$lib/Editor/example-asm';
 	import PanelLabel from '$lib/PanelLabel.svelte';
-	import type { Interpreter } from '$lib/AsmInterpreter/Interpreter';
+	import { Interpreter } from '$lib/AsmInterpreter/Interpreter';
 	import { Parser } from '$lib/AsmInterpreter/parsing/Parser';
 
 	let editor: Monaco.editor.IStandaloneCodeEditor;
@@ -13,10 +13,10 @@
 
 	let models: Map<String, Monaco.editor.ITextModel>;
 
-//	let interpreter: Interpreter;
+	//	let interpreter: Interpreter;
 
 	onMount(async () => {
-		models = new Map()
+		models = new Map();
 		// Import our 'monaco.ts' file here
 		// (onMount() will only be executed in the browser, which is what we want)
 		monaco = (await import('./monaco')).default;
@@ -40,12 +40,13 @@
 		);
 		models.set('/vfs/main.asm', main);
 
-		main.onDidChangeContent((e) => {
-			//Parser.get().validate(e, main, '/vfs/main.asm');
+		// create the interpreter singleton
+		new Interpreter(monaco);
+
+		main.onDidChangeContent((_e) => {
+			Parser.get().validate(main, '/vfs/main.asm');
 		});
 		editor.setModel(main);
-
-
 	});
 
 	onDestroy(() => {
