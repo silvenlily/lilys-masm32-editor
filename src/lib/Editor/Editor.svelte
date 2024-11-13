@@ -13,9 +13,10 @@
 
 	let models: Map<String, Monaco.editor.ITextModel>;
 
-	let interpreter: Interpreter;
+//	let interpreter: Interpreter;
 
 	onMount(async () => {
+		models = new Map()
 		// Import our 'monaco.ts' file here
 		// (onMount() will only be executed in the browser, which is what we want)
 		monaco = (await import('./monaco')).default;
@@ -40,7 +41,7 @@
 		models.set('/vfs/main.asm', main);
 
 		main.onDidChangeContent((e) => {
-			Parser.get().validate(e, main, '/vfs/main.asm');
+			//Parser.get().validate(e, main, '/vfs/main.asm');
 		});
 		editor.setModel(main);
 

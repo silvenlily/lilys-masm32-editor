@@ -9,18 +9,18 @@ export const asm_theme: Monaco.editor.IStandaloneThemeData = {
 	base: 'vs-dark',
 	inherit: true,
 	rules: [
-		{ token: 'operator', foreground: 'ffaaaa'},
-		{ token: 'number', foreground: 'ddddff'},
-		{ token: 'keyword', foreground: 'a1e6ff' },
-		{ token: 'custom-register', foreground: 'AAFFAA' },
-		{ token: 'custom-type', foreground: 'FFA500' },
-		{ token: 'custom-compiler-directive', foreground: '55aa55' },
-		{ token: 'custom-call', foreground: 'FFFF55' },
-		{ token: 'custom-jump', foreground: 'FF88FF' },
-		{ token: 'custom-label', foreground: 'FFAAFF' },
-		{ token: 'custom-number', foreground: '77DD77' },
-		{ token: 'custom-bracket', foreground: '77DD77' },
-		{ token: 'custom-proc', foreground: '9999FF' }
+		{ token: 'operator', foreground: '#ffaaaa'},
+		{ token: 'number', foreground: '#ddddff'},
+		{ token: 'keyword', foreground: '#a1e6ff' },
+		{ token: 'custom-register', foreground: '#AAFFAA' },
+		{ token: 'custom-type', foreground: '#FFA500' },
+		{ token: 'custom-compiler-directive', foreground: '#c1118f' },
+		{ token: 'custom-call', foreground: '#FFFF55' },
+		{ token: 'custom-jump', foreground: '#FF88FF' },
+		{ token: 'custom-label', foreground: '#FFAAFF' },
+		{ token: 'custom-number', foreground: '#77DD77' },
+		{ token: 'custom-bracket', foreground: '#77DD77' },
+		{ token: 'custom-proc', foreground: '#9999FF' }
 	]
 };
 
