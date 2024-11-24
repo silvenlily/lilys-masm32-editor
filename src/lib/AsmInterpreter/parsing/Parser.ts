@@ -2,12 +2,14 @@ import type { MemoryLocation } from '$lib/AsmInterpreter/vSystem/memoryLocation'
 import type Monaco from '$lib/Editor/monaco';
 import type { Procedure } from '$lib/AsmInterpreter/Procedure';
 import { Interpreter } from '$lib/AsmInterpreter/Interpreter';
+import type { vSystem } from '$lib/AsmInterpreter/vSystem/vSystem';
+import { Directives } from '$lib/AsmInterpreter/parsing/Directives/Directive';
 
-export interface InstructionLine {
-	instruction: string;
-	param1?: MemoryLocation | number;
-	param2?: MemoryLocation | number;
-}
+
+export const LineTypes = ['Directive', 'Instruction'] as const;
+export type LineType = (typeof LineTypes)[number]
+export const SegmentTypes = ['uninitialized', 'initialized', 'code', 'data', 'const', 'procedure'] as const;
+export type SegmentType = (typeof SegmentTypes)[number]
 
 export interface ParseError {
 	severity: Monaco.MarkerSeverity;
@@ -17,15 +19,44 @@ export interface ParseError {
 	};
 }
 
-abstract class LineParser {
-	abstract type: 'Directive' | 'Instruction';
-	abstract name: string;
-	abstract tag: RegExp;
-	abstract supported: boolean;
-	abstract unsupported_err_message: string;
-	abstract legal_in_mode: SegmentType[];
 
-	abstract apply?(line: ParseLine, parse: Parse): undefined;
+export interface InstructionLineOptions {
+	name: string,
+	description: string,
+	tag: string | RegExp,
+	supported: boolean,
+	unsupported_err_message?: string;
+	legal_in_mode: SegmentType[]
+}
+
+export class InstructionLine {
+	type: LineType;
+	name: string;
+	description?: string;
+	tag: RegExp | string;
+	supported: boolean;
+	unsupported_err_message: string;
+	legal_in_mode: SegmentType[];
+
+	apply_parse?(line: LOC, parse: Parse): undefined
+
+	execute?(line: LOC, parse: Parse, system: vSystem): undefined
+
+	register(parser: Parser) {
+		for (let i = 0; i < this.legal_in_mode.length; i++) {
+			parser.line_keys[this.legal_in_mode[i]].push(this);
+		}
+	}
+
+	constructor(options: InstructionLineOptions, parser_type: LineType) {
+		this.type = parser_type;
+		this.name = options.name;
+		this.description = options.description;
+		this.tag = options.tag;
+		this.supported = options.supported;
+		this.unsupported_err_message = options.unsupported_err_message ?? 'Unsupported instruction';
+		this.legal_in_mode = options.legal_in_mode;
+	}
 }
 
 /**
@@ -33,14 +64,26 @@ abstract class LineParser {
  */
 export class Parser {
 	private static singleton: Parser;
-	public line_keys: { [key in SegmentType]: LineParser[] };
+	public line_keys: { [key in SegmentType]: InstructionLine[] };
 
 	constructor() {
-		let lk: { [key in SegmentType]?: LineParser[] } = {};
+		let lk: { [key in SegmentType]?: InstructionLine[] } = {};
 		for (let i = 0; i < SegmentTypes.length; i++) {
 			lk[SegmentTypes[i]] = [];
 		}
-		this.line_keys = lk as { [key in SegmentType]: LineParser[] };
+		this.line_keys = lk as { [key in SegmentType]: InstructionLine[] };
+
+		for (let i = 0; i < Directives.length; i++) {
+			Directives[i].register(this);
+		}
+
+		/*
+		for (let i = 0; i < Instructions.length; i++) {
+			Instructions[i].register(this)
+		}*/
+
+
+
 	}
 
 	static get(): Parser {
@@ -50,7 +93,7 @@ export class Parser {
 		return Parser.singleton;
 	}
 
-	public static register_key(key: LineParser, segments: SegmentType[]) {
+	public static register_key(key: InstructionLine, segments: SegmentType[]) {
 		let self = Parser.get();
 		for (let i = 0; i < segments.length; i++) {
 			self.line_keys[segments[i]].push(key);
@@ -66,16 +109,13 @@ export class Parser {
 		parse.second_pass();
 		let errors = parse.flush_errors();
 
+		(await Interpreter.get_instance()).monaco.editor.setModelMarkers(model, path, errors);
+
 	}
 
 }
 
-type LineType = 'Directive' | 'Instruction'
-
-const SegmentTypes = ['uninitialized', 'initialized', 'code', 'data', 'const', 'procedure'] as const;
-type SegmentType = (typeof SegmentTypes)[number]
-
-interface ParseLine {
+export interface LOC {
 	text: string,
 	type?: LineType,
 	line_number: number
@@ -89,7 +129,7 @@ export class Parse {
 	errors: ParseError[];
 
 	segment: SegmentType;
-	parse_lines: ParseLine[];
+	parse_lines: LOC[];
 	pass: number;
 
 	constructor(lines: string[]) {
@@ -108,7 +148,7 @@ export class Parse {
 
 	strip_white() {
 		this.pass = 0;
-		let new_lines: ParseLine[] = [];
+		let new_lines: LOC[] = [];
 
 		for (let i = 0; i < this.parse_lines.length; i++) {
 			let line_text = this.parse_lines[i].text.trim();
@@ -133,9 +173,11 @@ export class Parse {
 	async first_pass() {
 		this.pass = 1;
 		for (let i = 0; i < this.parse_lines.length; i++) {
+			console.log(`checking line: ${i}`);
 			let line = this.parse_lines[i];
-			let keys: LineParser[] = Parser.get().line_keys[this.segment];
+			let keys: InstructionLine[] = Parser.get().line_keys[this.segment];
 			for (let j = 0; j < keys.length; j++) {
+				console.log(`checking line: ${i} for key ${j}`);
 				let mhit = line.text.match(keys[j].tag);
 				if (mhit != null) {
 					let parser = keys[j];
@@ -146,11 +188,14 @@ export class Parse {
 
 					if (!parser.supported) {
 						this.errors.push({
-							message: parser.unsupported_err_message ?? `${parser.name} is not supported`,
-							position: { endColumn: 0, endLineNumber: 0, startColumn: 0, startLineNumber: 0 },
-							severity: (await Interpreter.get_instance()).monaco.MarkerSeverity.Error
+							message: parser.unsupported_err_message ?? `${parser.name} is not supported`, position: {
+								endColumn: ends_at,
+								endLineNumber: line.line_number,
+								startColumn: starts_at,
+								startLineNumber: line.line_number
+							}, severity: (await Interpreter.get_instance()).monaco.MarkerSeverity.Error
 						});
-						return;
+						break;
 					}
 
 					if (!parser.legal_in_mode.includes(this.segment)) {
@@ -161,10 +206,9 @@ export class Parse {
 						});
 					}
 
-					if (parser.apply != undefined) {
-						parser.apply!(line, this);
+					if (parser.apply_parse != undefined) {
+						parser.apply_parse!(line, this);
 					}
-
 
 					break;
 				}
@@ -177,6 +221,9 @@ export class Parse {
 	}
 
 	flush_errors(): Monaco.editor.IMarkerData[] {
+
+		console.log(`flushing ${this.errors.length} errors`);
+
 		const markers: Monaco.editor.IMarkerData[] = [];
 
 		for (let i = 0; i < this.errors.length; i++) {
