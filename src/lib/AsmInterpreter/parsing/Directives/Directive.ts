@@ -1,19 +1,17 @@
-import { ProcessorDirectives } from '$lib/AsmInterpreter/parsing/Directives/processor';
-import {
-	InstructionLine, type InstructionLineOptions, type LineType, Parse, type LOC, type SegmentType, SegmentTypes
-} from '$lib/AsmInterpreter/parsing/Parser';
+import { InstructionLine } from '$lib/AsmInterpreter/parsing/Line';
+import type { InstructionLineOptions } from '$lib/AsmInterpreter/parsing/Types';
 
-export const DirectiveCategoryNames = ['code_labels', 'conditional_assembly', 'conditional_control_flow', 'conditional_error', 'data_allocation', 'equates', 'listing_control', 'macros', 'misc', 'processor', 'procedures', 'repeat_blocks', 'scope', 'segment', 'simplified_segment', 'string', 'structure'] as const;
-export type DirectiveCategoryName = (typeof DirectiveCategoryNames)[number]
+const DirectiveCategoryNames = ['code_labels', 'conditional_assembly', 'conditional_control_flow', 'conditional_error', 'data_allocation', 'equates', 'listing_control', 'macros', 'misc', 'processor', 'procedures', 'repeat_blocks', 'scope', 'segment', 'simplified_segment', 'string', 'structure'] as const;
+type DirectiveCategoryName = (typeof DirectiveCategoryNames)[number]
 
-export abstract class Directive extends InstructionLine {
+export class Directive extends InstructionLine {
 	type: 'Directive' = 'Directive';
-	directive_catagory: string;
+	directive_category: string;
 
-	protected constructor(options: DirectiveInstructionLineOptions, catagory: string) {
+	public constructor(options: DirectiveInstructionLineOptions, category: string) {
 		options.unsupported_err_message = options.unsupported_err_message ?? 'Unsupported compiler directive';
 		super(options, 'Directive');
-		this.directive_catagory = catagory;
+		this.directive_category = category;
 	}
 }
 
@@ -28,12 +26,4 @@ export interface DirectiveCategory {
 	directives: Directive[]
 }
 
-export const DirectiveCategories = [ProcessorDirectives];
 
-export const Directives: Directive[] = (() => {
-	let directives: Directive[] = [];
-	for (let i = 0; i < DirectiveCategories.length; i++) {
-		directives = DirectiveCategories[i].directives.concat(directives);
-	}
-	return directives
-})();

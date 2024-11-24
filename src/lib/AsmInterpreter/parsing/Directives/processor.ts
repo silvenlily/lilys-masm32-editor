@@ -1,13 +1,13 @@
 import {
-	Directive, type DirectiveCategory, type DirectiveInstructionLineOptions
+	Directive,
+	type DirectiveCategory,
+	type DirectiveInstructionLineOptions
 } from '$lib/AsmInterpreter/parsing/Directives/Directive';
-
 
 export class ProcessorDirective extends Directive {
 	type: 'Directive' = 'Directive';
 
 	constructor(options: ProcessorDirectiveParserOptions) {
-		options.unsupported_err_message = options.unsupported_err_message ?? 'Unsupported processor / processor mode';
 		super(options, 'processor');
 	}
 }
