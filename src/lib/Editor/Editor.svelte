@@ -5,27 +5,24 @@
 	import exampleAsm from '$lib/Editor/example-asm';
 	import PanelLabel from '$lib/PanelLabel.svelte';
 	import { Interpreter } from '$lib/AsmInterpreter/Interpreter';
-	import { Parser } from '$lib/AsmInterpreter/parsing/Parser';
+	import Parser from '$lib/AsmInterpreter/parsing/Parser';
 
-	let editor: Monaco.editor.IStandaloneCodeEditor;
+	let editor: Monaco.editor.IStandaloneCodeEditor | undefined = undefined;
 	let monaco: typeof Monaco;
 	let editorContainer: HTMLElement;
 
 	let models: Map<String, Monaco.editor.ITextModel>;
 
-	//	let interpreter: Interpreter;
-
 	onMount(async () => {
 		models = new Map();
-		// Import our 'monaco.ts' file here
-		// (onMount() will only be executed in the browser, which is what we want)
 		monaco = (await import('./monaco')).default;
 
 		monaco.editor.defineTheme('asm-dark', asm_defs.asm_theme);
 		monaco.languages.register(asm_defs.asm_extention);
 		monaco.languages.setMonarchTokensProvider('asm', asm_defs.asm_lang_def);
 		monaco.languages.setLanguageConfiguration('asm', asm_defs.asm_lang_conf);
-		// Your monaco instance is ready, let's display some code!
+
+		// create editor
 		const editor = monaco.editor.create(editorContainer, {
 			automaticLayout: true,
 			theme: 'asm-dark',
@@ -51,7 +48,14 @@
 
 	onDestroy(() => {
 		monaco?.editor.getModels().forEach((model) => model.dispose());
-		editor?.dispose();
+
+		// tsc has no idea how to handle the onMount and onDestroy callbacks
+		// for obvious reasons onDestroy cant happen before onMount but the tsc doesn't know that
+		// so we have to do this silliness to make the tsc happy
+		let e: any = editor as any;
+		if(e != undefined) {
+			e.dispose();
+		}
 	});
 
 </script>

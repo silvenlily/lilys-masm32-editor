@@ -1,6 +1,6 @@
 import type Monaco from '$lib/Editor/monaco';
 
-export const LineTypes = ['Directive', 'Instruction'] as const;
+export const LineTypes = ['Directive', 'Instruction', 'Whitespace'] as const;
 export type LineType = (typeof LineTypes)[number]
 
 export const SegmentTypes = ['uninitialized', 'initialized', 'code', 'data', 'const', 'procedure'] as const;
@@ -8,9 +8,8 @@ export type Types = (typeof SegmentTypes)[number]
 
 export interface UnparsedLOC {
 	text: string,
-	type?: LineType,
 	line_number: number
-	whitespace_shift?: number,
+	whitespace_shift: number
 }
 
 export interface ParseError {

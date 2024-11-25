@@ -1,5 +1,5 @@
-import { Directive } from '$lib/AsmInterpreter/parsing/Directives/Directive';
-import { ProcessorDirectives } from '$lib/AsmInterpreter/parsing/Directives/processor';
+import { Directive } from '$lib/AsmInterpreter/parsing/Lines/Directives/Directive';
+import { ProcessorDirectives } from '$lib/AsmInterpreter/parsing/Lines/Directives/processor';
 
 export const DirectiveCategories = [ProcessorDirectives];
 

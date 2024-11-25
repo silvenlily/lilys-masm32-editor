@@ -1,10 +1,10 @@
-import { InstructionLine } from '$lib/AsmInterpreter/parsing/Line';
+import { LineParser } from '$lib/AsmInterpreter/parsing/Lines/LineParser';
 import type { InstructionLineOptions } from '$lib/AsmInterpreter/parsing/Types';
 
 const DirectiveCategoryNames = ['code_labels', 'conditional_assembly', 'conditional_control_flow', 'conditional_error', 'data_allocation', 'equates', 'listing_control', 'macros', 'misc', 'processor', 'procedures', 'repeat_blocks', 'scope', 'segment', 'simplified_segment', 'string', 'structure'] as const;
 type DirectiveCategoryName = (typeof DirectiveCategoryNames)[number]
 
-export class Directive extends InstructionLine {
+export class Directive extends LineParser {
 	type: 'Directive' = 'Directive';
 	directive_category: string;
 

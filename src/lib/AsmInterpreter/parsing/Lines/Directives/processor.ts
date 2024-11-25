@@ -2,7 +2,7 @@ import {
 	Directive,
 	type DirectiveCategory,
 	type DirectiveInstructionLineOptions
-} from '$lib/AsmInterpreter/parsing/Directives/Directive';
+} from '$lib/AsmInterpreter/parsing/Lines/Directives/Directive';
 
 export class ProcessorDirective extends Directive {
 	type: 'Directive' = 'Directive';
