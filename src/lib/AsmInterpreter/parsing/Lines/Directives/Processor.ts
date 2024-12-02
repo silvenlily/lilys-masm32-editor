@@ -19,8 +19,8 @@ export const ProcessorDirective386P = new ProcessorDirective({
 	name: '.386P',
 	description: 'Enables all instructions (including privileged) for the 80386 processor',
 	supported: true,
-	tag: /^(\.386P)$/,
-	legal_in_mode: []
+	tag: new RegExp("^(\.386p)$"),
+	legal_in_mode: ["uninitialized"]
 });
 
 export const ProcessorDirective386 = new ProcessorDirective({
@@ -28,17 +28,17 @@ export const ProcessorDirective386 = new ProcessorDirective({
 	name: '.386',
 	supported: false,
 	unsupported_err_message: 'Unprivileged execution is not yet supported, use privileged mode instead (.386P)',
-	tag: /^\.386$/,
-	legal_in_mode: []
+	tag: new RegExp("^\.386$"),
+	legal_in_mode: ["uninitialized"]
 });
 
 const UnsupportedProcessorDirectives: string[] | RegExp[] = ['.387', '.486', '.486P', '.586', '.586P', '.686', '.686P', '.K3D', '.MMX', '.XMM'];
 export const ProcessorDirectives: DirectiveCategory = {
 	description: 'Enables a set of instructions for the given processor.',
 	name: 'Processor',
-	tag: 'processor',
+	category: 'processor',
 	directives: ((() => {
-		let directives = [ProcessorDirective386, ProcessorDirective386P];
+		let directives:ProcessorDirective[] = [];
 		for (const unsupportedProcessorDirective of UnsupportedProcessorDirectives) {
 			directives.push(new ProcessorDirective({
 				description: '',
@@ -49,6 +49,8 @@ export const ProcessorDirectives: DirectiveCategory = {
 				legal_in_mode: ['uninitialized']
 			}));
 		}
+		directives.push(ProcessorDirective386, ProcessorDirective386P)
+		console.debug(`loaded ${directives.length} processor directives`)
 		return directives;
 	})())
 };

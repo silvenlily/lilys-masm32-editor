@@ -2,20 +2,21 @@
 
 <style lang="scss">
 
-:global {
+  :global {
     :root {
-        --editor-right-edge: 30vw;
-        --editor-left-edge: 20vw;
+      --editor-right-edge: 30vw;
+      --editor-left-edge: 20vw;
     }
 
     body {
-        background: $panel-background-color;
-        color: $panel-text-color;
+      background: $panel-background-color;
+      color: $panel-text-color;
+			overflow: hidden;
     }
 
     div {
-        color: $panel-text-color;
+      color: $panel-text-color;
     }
-}
+  }
 
 </style>

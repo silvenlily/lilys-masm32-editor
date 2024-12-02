@@ -1,34 +1,54 @@
-export default ".486\n" +
-	".MODEL FLAT\n" +
-	".CODE\n" +
-	"PUBLIC _myFunc\n" +
-	"_myFunc PROC\n" +
-	"  ; Subroutine Prologue\n" +
-	"  push ebp     ; Save the old base pointer value.\n" +
-	"  mov ebp, esp ; Set the new base pointer value.\n" +
-	"  sub esp, 4   ; Make room for one 4-byte local variable.\n" +
-	"  push edi     ; Save the values of registers that the function\n" +
-	"  push esi     ; will modify. This function uses EDI and ESI.\n" +
-	"  ; (no need to save EBX, EBP, or ESP)\n" +
-	"\n" +
-	"_some_label:\n" +
-	"  ; Subroutine Body\n" +
-	"  mov eax, [ebp+8]   ; Move value of parameter 1 into EAX\n" +
-	"  mov esi, [ebp+12]  ; Move value of parameter 2 into ESI\n" +
-	"  mov edi, [ebp+16*ESI]  ; Move value of parameter 3 into EDI\n" +
-	"\n" +
-	"  mov [ebp-4], edi   ; Move EDI into the local variable\n" +
-	"  add [ebp-4], esi   ; Add ESI into the local variable\n" +
-	"  add eax, [ebp-4]   ; Add the contents of the local variable\n" +
-	"\n" +
-	"  cmp eax, ebp\n" +
-	"  jmp _some_label\n" +
-	"\n" +
-	"  ; Subroutine Epilogue \n" +
-	"  pop esi      ; Recover register values\n" +
-	"  pop edi\n" +
-	"  mov esp, ebp ; Deallocate local variables\n" +
-	"  pop ebp ; Restore the caller's base pointer value\n" +
-	"  ret\n" +
-	"_myFunc ENDP\n" +
-	"END"
+export default "; recursion assignemnt\n" +
+"; Lily Young\n" +
+"; 20 October 2024\n" +
+"; calculates the factorial of a number\n" +
+"\n" +
+".model flat\n" +
+"\n" +
+".code\n" +
+"\n" +
+"; calculates the factorial of the number in EAX, returning the result in EAX\n" +
+"; modifies EAX\n" +
+"factorial PROC near\n" +
+"_factorial:\n" +
+"\t; save registers\n" +
+"\tpush EDX\n" +
+"\tpush EBX\n" +
+"\tpush ECX\n" +
+"\n" +
+"\tmov EBX, EAX\n" +
+"\tdec EBX\n" +
+"\n" +
+"\tcall factorial_inner\n" +
+"\n" +
+"\t; return saved registers\n" +
+"\tpop ECX\n" +
+"\tpop EBX\n" +
+"\tpop EDX\n" +
+"\tret\n" +
+"factorial ENDP\n" +
+"\n" +
+"; factorial inner function\n" +
+"; EBX - next factorial multiplier\n" +
+"; EAX - current total\n" +
+"; ESI - devnull\n" +
+"factorial_inner PROC near\n" +
+"_factorial_inner:\n" +
+"\t\n" +
+"\timul EAX, EBX\n" +
+"\tdec EBX\n" +
+"\tjc _overflow\n" +
+"\n" +
+"\tcmp EBX, 1\n" +
+"\tjle _done\n" +
+"\n" +
+"\tcall factorial_inner\n" +
+"\n" +
+"_done:\n" +
+"\tret\n" +
+"_overflow:\n" +
+"\tmov EAX, 0\n" +
+"\tret\n" +
+"factorial_inner ENDP\n" +
+"\n" +
+"END";

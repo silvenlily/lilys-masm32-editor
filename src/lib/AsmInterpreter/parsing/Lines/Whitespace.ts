@@ -1,13 +1,20 @@
-import { LineParser } from '$lib/AsmInterpreter/parsing/Lines/LineParser';
-import { type InstructionLineOptions, SegmentTypes } from '$lib/AsmInterpreter/parsing/Types';
+import {
+	LineParser, type tagged_directive_line
+} from '$lib/AsmInterpreter/parsing/Lines/LineParser';
+import { type LineOptions, SegmentTypes, type UnparsedLOC } from '$lib/AsmInterpreter/parsing/SegmentType';
+import type { ParseState } from '$lib/AsmInterpreter/parsing/ParseState';
 
 export class Whitespace extends LineParser {
 	type: 'Whitespace' = 'Whitespace';
-	whitespace_type: 'comment' | 'emptyln';
+	whitespace_type: 'comment' | 'empty_ln';
 
-	public constructor(options: InstructionLineOptions, type: 'comment' | 'emptyln') {
+	public constructor(options: LineOptions, type: 'comment' | 'empty_ln') {
 		super(options, 'Whitespace');
 		this.whitespace_type = type;
+	}
+
+	override apply_parse(_line: UnparsedLOC, parse: ParseState): { line: tagged_directive_line } {
+		return { line: { type: 'directive', instruction: this } };
 	}
 }
 
@@ -15,15 +22,15 @@ export const EmptyInstructionLine = new Whitespace({
 	description: 'Empty line',
 	legal_in_mode: JSON.parse(JSON.stringify(SegmentTypes)),
 	supported: true,
-	tag: /^\s+$/,
+	tag: /^\s*$/,
 	name: 'Empty Line'
-}, 'emptyln');
+}, 'empty_ln');
 
 export const CommentInstructionLine = new Whitespace({
 	description: 'Comment only line',
 	legal_in_mode: JSON.parse(JSON.stringify(SegmentTypes)),
 	supported: true,
-	tag: /^\s+$/,
+	tag: /^\s*;.*$/,
 	name: 'Comment Line'
 }, 'comment');
 

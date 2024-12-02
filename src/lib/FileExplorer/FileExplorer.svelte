@@ -18,7 +18,6 @@
     justify-content: center;
     position: absolute;
     background: $panel-background-color;
-    overflow: scroll;
     top: 0;
     left: 0;
     bottom: $navbar-height;
@@ -30,11 +29,11 @@
     flex-direction: column;
     position: absolute;
     background: $panel-background-color;
-    overflow: scroll;
     top: calc($navbar-height + 1vh);
     left: 0;
     bottom: 0;
     width: calc($editor-left-edge - 1px);
-
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 </style>

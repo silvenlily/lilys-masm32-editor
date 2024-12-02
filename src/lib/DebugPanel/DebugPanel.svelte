@@ -14,7 +14,8 @@
     position: absolute;
     background: $panel-background-color;
     color: #d4d4d4;
-    overflow: scroll;
+    overflow-x: hidden;
+    overflow-y: auto;
     top: 0;
     right: 0;
 		bottom: 0;

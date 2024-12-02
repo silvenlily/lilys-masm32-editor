@@ -41,9 +41,12 @@
 		new Interpreter(monaco);
 
 		main.onDidChangeContent((_e) => {
-			Parser.get().validate(main, '/vfs/main.asm');
+			Parser.get_parser().validate(models);
 		});
 		editor.setModel(main);
+
+		// create parser singleton and run validate on default main file
+		await Parser.get_parser().validate(models);
 	});
 
 	onDestroy(() => {
