@@ -1,7 +1,12 @@
 import type Monaco from '$lib/Editor/monaco';
 import { Interpreter } from '$lib/AsmInterpreter/Interpreter';
 import {
-	type LineKeyMap, type LineParser, type ParsingLine, type tagged_linkable_line, type tagged_unparsed_line
+	type LineKeyMap,
+	type LineParser,
+	type ParsingLine,
+	type tagged_executable_line,
+	type tagged_linkable_line,
+	type tagged_unparsed_line
 } from '$lib/AsmInterpreter/parsing/Lines/LineParser';
 import { ParseState } from '$lib/AsmInterpreter/parsing/ParseState';
 import { type ProcReference, type SegmentType, SegmentTypes } from '$lib/AsmInterpreter/parsing/SegmentType';
@@ -284,6 +289,7 @@ class Parser {
 	}[]): Promise<ParseState> {
 		let global_parse: ParseState = new ParseState();
 
+		// globalize procedures and variables
 		for (let model_index = 0; model_index < models.length; model_index++) {
 			let model = models[model_index];
 			model.parse.procedures.forEach((proc, proc_id) => {
@@ -307,7 +313,35 @@ class Parser {
 			}
 		}
 
+		// validate all requested references
+		for (let model_index = 0; model_index < models.length; model_index++) {
+			let model = models[model_index];
+			for (let line_index = 0; line_index < model.lines.length; line_index++) {
+				if (model.lines[line_index].type != 'instruction') {
+					continue;
+				}
+				let runtime_line = (model.lines[line_index] as tagged_executable_line).runtime;
+				if (runtime_line.requested_variable_address_resolutions == undefined) {
+					continue;
+				}
 
+				let req_misses: string[] = [];
+				runtime_line.requested_variable_address_resolutions.forEach((addr, req) => {
+					// check if variable isn't available
+					if (!global_parse.variables.has({ variable_name: req, model: model.model.uri.toString() })) {
+						req_misses.push(req);
+					}
+				});
+
+				if (req_misses.length != 0) {
+					model.lines[line_index] = {
+						loc: runtime_line.originating_loc,
+						type: 'invalid',
+						message: `reference(s) '${req_misses.join(', ')}' could not be resolved`
+					};
+				}
+			}
+		}
 
 		return global_parse;
 	}

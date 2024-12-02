@@ -7,6 +7,16 @@ interface BaseDataOperand {
 	value: RegisterAddress | number | MemoryAddress;
 }
 
+export interface ReferenceDataOperand {
+	type: "ReferenceDataOperand";
+	value: string;
+}
+
+export interface ReferenceDataOperand {
+	type: "ReferenceDataOperand";
+	value: string;
+}
+
 export interface PointerDataOperand extends BaseDataOperand {
 	type: "PointerDataOperand";
 	value: MemoryAddress;

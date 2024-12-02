@@ -1,12 +1,12 @@
 import {
 	LineParser,
 	type tagged_executable_line,
-	type tagged_invalid_line
+	type tagged_invalid_line, type tagged_linkable_line
 } from '$lib/AsmInterpreter/parsing/Lines/LineParser';
 import type { LineOptions } from '$lib/AsmInterpreter/parsing/SegmentType';
 import type { ParseState } from '$lib/AsmInterpreter/parsing/ParseState';
 
-export type InstructionFactoryApplyParseReturnType = {   line: tagged_executable_line | tagged_invalid_line, state?: ParseState }
+export type InstructionFactoryApplyParseReturnType = {   line: tagged_executable_line | tagged_invalid_line | tagged_linkable_line, state?: ParseState }
 
 export interface InstructionLineOptions {
 	description: string,

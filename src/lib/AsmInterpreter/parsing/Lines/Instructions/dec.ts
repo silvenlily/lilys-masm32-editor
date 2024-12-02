@@ -4,8 +4,10 @@ import {
 	InstructionFactory, type InstructionFactoryApplyParseReturnType, type InstructionLineOptions
 } from '$lib/AsmInterpreter/parsing/Lines/Instructions/InstructionFactory';
 import type { UnparsedLOC } from '$lib/AsmInterpreter/parsing/SegmentType';
-import type { ParseState } from '$lib/AsmInterpreter/parsing/ParseState';
-import type { PointerDataOperand, RegisterDataOperand } from '$lib/AsmInterpreter/system/DataOperand';
+import { type ParseState } from '$lib/AsmInterpreter/parsing/ParseState';
+import type {
+	PointerDataOperand, ReferenceDataOperand, RegisterDataOperand
+} from '$lib/AsmInterpreter/system/DataOperand';
 import { REGISTER_ADDRESS_MAP } from '$lib/AsmInterpreter/system/RegisterBuilders';
 import type { RuntimeTrace } from '$lib/AsmInterpreter/Trace';
 
@@ -21,7 +23,7 @@ export class DecBuilder extends InstructionFactory {
 		super(opts);
 	}
 
-	apply_parse(line: UnparsedLOC, parse: ParseState): InstructionFactoryApplyParseReturnType {
+	apply_parse(line: UnparsedLOC, _parse: ParseState): InstructionFactoryApplyParseReturnType {
 
 		let parts = line.text.split(' ');
 		let dest_str = parts[1].trim();
@@ -30,36 +32,36 @@ export class DecBuilder extends InstructionFactory {
 		let try_register = REGISTER_ADDRESS_MAP.get(dest_str);
 		if (try_register != undefined) {
 			return {
-				line: { type: 'instruction', runtime: new Dec({ type: 'RegisterDataOperand', value: try_register }) }
+				line: { type: 'instruction', runtime: new Dec({ type: 'RegisterDataOperand', value: try_register }, line) }
 			};
 		}
 
-		let try_vars = parse.variables.get(dest_str);
-		if (try_vars != undefined) {
-			return {
-				line: { type: 'invalid', message: 'variable decrement not yet supported', loc: line }
-			};
+		return {
+			line: { type: 'instruction', runtime: new Dec({ type: 'ReferenceDataOperand', value: dest_str }, line) }
+		};
 
-			//return {
-			//	line: { type: 'instruction', instruction: new Dec({ type: 'PointerDataOperand', address: {} }) }
-			//};
-		}
-
-		return { line: { type: 'invalid', message: `invalid operand '${dest_str}'`, loc: line } };
 	}
+
 }
 
 export class Dec extends ExecutableLine {
-	dest: RegisterDataOperand | PointerDataOperand;
+	dest: RegisterDataOperand | ReferenceDataOperand;
+	requested_variable_address_resolutions: Map<string, number | null> = new Map();
 
-	constructor(dest: RegisterDataOperand | PointerDataOperand) {
-		super();
+	constructor(dest: RegisterDataOperand | ReferenceDataOperand, line: UnparsedLOC) {
+		super(line);
 		this.dest = dest;
+		if (this.dest.type == 'ReferenceDataOperand') {
+			this.requested_variable_address_resolutions.set(this.dest.value, null);
+		}
 	}
 
 	execute(trace: RuntimeTrace, system: vSystem): undefined {
-		if (this.dest.type == 'PointerDataOperand') {
-			let address = this.dest.value
+		if (this.dest.type == 'ReferenceDataOperand') {
+			let address = this.requested_variable_address_resolutions.get(this.dest.value);
+			if(typeof address != "number") {
+				throw `Interpreter integrity check failed, unresolved variable address reference ${this.dest.value} instruction: ${JSON.stringify(this)}`
+			}
 			let value = system.memory.get_int(trace, address);
 			value += 1;
 			system.memory.set_int(trace, address, value);
