@@ -1,10 +1,7 @@
 import {
-	Directive,
-	type DirectiveApplyParseReturnValue,
-	type DirectiveCategory,
-	type DirectiveInstructionLineOptions
+	Directive, type DirectiveApplyParseReturnValue, type DirectiveCategory, type DirectiveInstructionLineOptions
 } from '$lib/AsmInterpreter/parsing/Lines/Directives/Directive';
-import type { UnparsedLOC } from '$lib/AsmInterpreter/parsing/SegmentType';
+import { proc_reference_to_key, type UnparsedLOC } from '$lib/AsmInterpreter/parsing/SegmentType';
 import type { ParseState } from '$lib/AsmInterpreter/parsing/ParseState';
 import { ProcedureBuilder } from '$lib/AsmInterpreter/procedures/ProcedureBuilder';
 import type { LineParserLinkReturnValue } from '$lib/AsmInterpreter/parsing/Lines/LineParser';
@@ -66,14 +63,14 @@ export const ProcDirective = new ProcedureDirective({
 		}
 		let proc_builder = new ProcedureBuilder(label, model);
 
-		if (parse.procedures.has(proc_builder.get_ref())) {
+		if (parse.procedures.has(proc_reference_to_key(proc_builder.get_ref()))) {
 			return { line: { type: 'invalid', message: 'duplicate procedure label', loc: line } };
 		}
 
-		parse.procedures.set(proc_builder.get_ref(), proc_builder);
+		parse.procedures.set(proc_reference_to_key(proc_builder.get_ref()), proc_builder);
 		parse.current_proc = proc_builder;
 		parse.segment = 'procedure';
-		return { line: { type: 'directive', instruction: ProcDirective, loc:line } };
+		return { line: { type: 'directive', instruction: ProcDirective, loc: line } };
 	})
 });
 
@@ -90,7 +87,7 @@ export const EndpDirective = new ProcedureDirective({
 		parse.current_proc = undefined;
 
 		parse.segment = 'code';
-		return { line: { type: 'directive', instruction: EndpDirective, loc: line  } };
+		return { line: { type: 'directive', instruction: EndpDirective, loc: line } };
 	})
 });
 
@@ -107,9 +104,20 @@ export const LabelDirective = new ProcedureDirective({
 			return { line: { type: 'invalid', message: 'local label names must be at least one character long', loc: line } };
 		}
 
-		parse.current_proc?.label_map.set(label, line.line_number);
+		if (parse.current_proc == undefined) {
+			return { line: { type: 'invalid', message: 'labels are only valid inside of procedures', loc: line } };
+		}
 
-		return { line: { type: 'directive', instruction: LabelDirective, loc: line  } };
+		parse.line_references.set(label, {
+			line_number: parse.current_proc.lines.length,
+			model: parse.file!,
+			name: label,
+			proc: parse.current_proc.proc_label,
+			scope: 'global'
+		});
+		console.log(`set label ${label} to ${line.line_number}`);
+
+		return { line: { type: 'directive', instruction: LabelDirective, loc: line } };
 	})
 });
 

@@ -49,15 +49,38 @@ export class Interpreter {
 		let interpreter = await Interpreter.get_instance();
 
 		// create parser singleton and run validate on default main file
-		let program = await Parser.get_parser().build(interpreter.models);
-		interpreter.setup_program(program);
-		return interpreter.system!;
+		try {
+			let program = await Parser.get_parser().build(interpreter.models);
+			interpreter.setup_program(program);
+			return interpreter.system!;
+		} catch (e: any) {
+			if (e !== 'validate failed') {
+				console.error(`build failed: ${e.toString()}`);
+				throw e;
+			}
+			throw e;
+		}
+
+	}
+
+	public static async reset() {
+		let int = await Interpreter.get_instance();
+
+		int.current_program = undefined;
+		int.system = undefined;
+		Parser.reset_parser()
+
+		return await Interpreter.build()
 	}
 
 	public setup_program(program: Program) {
 		// setup new system
 		this.system = new vSystem(program.static_alloc, program.static_offset, program.main.ref, program.ln_mapping);
+		console.debug(`built system`);
 		this.current_program = program;
+		this.system.instruction_pointer += 1;
+		console.debug(`set instruction pointer: ${this.system.instruction_pointer}`);
+		this.decorations.clear();
 	}
 
 	public step_program(): vSystem {
@@ -84,8 +107,6 @@ export class Interpreter {
 
 		this.system.instruction_pointer += 1;
 
-		console.log(`eax: ${this.system.registers.get('eax')!.get_int()}`);
-
 		let model = this.models.get(current_proc.ref.model);
 
 		if (model != undefined) {
@@ -94,7 +115,9 @@ export class Interpreter {
 			let decoration: Monaco.editor.IModelDeltaDecoration = {
 
 				options: {
-					isWholeLine: true, inlineClassName: 'highlighted_line_decoration'
+					isWholeLine: true,
+					marginClassName: 'highlighted_line_decoration',
+					inlineClassName: 'highlighted_line_decoration'
 
 				}, range: {
 					startLineNumber: line.loc.line_number, startColumn: 0, endLineNumber: line.loc.line_number, endColumn: 1

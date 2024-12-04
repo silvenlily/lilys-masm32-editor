@@ -7,7 +7,6 @@ import type { ProcReference } from '$lib/AsmInterpreter/parsing/SegmentType';
 
 export class ProcedureBuilder {
 	lines:ParsingLine[] = [];
-	label_map: Map<string, number> = new Map();
 	memory_footprint: number = 0;
 	proc_label;
 	model;

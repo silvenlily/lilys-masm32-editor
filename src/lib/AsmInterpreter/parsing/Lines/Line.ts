@@ -14,19 +14,39 @@ import { REGISTER_ADDRESS_MAP } from '$lib/AsmInterpreter/system/RegisterBuilder
 export class ExecutableLine {
 	originating_loc: UnparsedLOC;
 	requested_variable_address_resolutions: Map<string, number | null>;
+	requested_proc_address_resolutions: Map<string, number | null>;
+	requested_ln_ref_address_resolutions: Map<string, number | null>;
 
-	constructor(originating_line: UnparsedLOC, requested_address_resolutions?: Map<string, number | null>) {
-		this.requested_variable_address_resolutions = requested_address_resolutions ?? new Map();
+	constructor(originating_line: UnparsedLOC) {
+		this.requested_variable_address_resolutions = new Map();
+		this.requested_proc_address_resolutions = new Map();
+		this.requested_ln_ref_address_resolutions = new Map();
 		this.originating_loc = originating_line;
 	}
 
 	execute(trace: RuntimeTrace, system: vSystem): undefined {
 	}
 
-	get_reqested_address(req:string): number {
+	get_requested_ln_ref_address(req:string): number {
+		let address = this.requested_ln_ref_address_resolutions.get(req);
+		if (typeof address != 'number') {
+			throw `Interpreter integrity check failed, unresolved instruction address reference '${req}'\n instruction: ${JSON.stringify(this)}`;
+		}
+		return address
+	}
+
+	get_requested_proc_address(req:string): number {
+		let address = this.requested_proc_address_resolutions.get(req);
+		if (typeof address != 'number') {
+			throw `Interpreter integrity check failed, unresolved procedure address reference '${req}'\n instruction: ${JSON.stringify(this)}`;
+		}
+		return address
+	}
+
+	get_requested_variable_address(req:string): number {
 		let address = this.requested_variable_address_resolutions.get(req);
 		if (typeof address != 'number') {
-			throw `Interpreter integrity check failed, unresolved variable address reference ${req} instruction: ${JSON.stringify(this)}`;
+			throw `Interpreter integrity check failed, unresolved variable address reference '${req}'\n instruction: ${JSON.stringify(this)}`;
 		}
 		return address
 	}
@@ -46,9 +66,10 @@ export class ExecutableLine {
 		}
 		if (allowed_tags.includes('PointerDataOperand')) {
 			if (operand.charAt(0) == '[' && operand.charAt(operand.length - 1) == ']') {
+				let inner_str = operand.substring(1, operand.length - 1)
 				let inner: RegisterDataOperand | ReferenceDataOperand | undefined = undefined;
 				try {
-					inner = this.resolve_operand(operand.substring(1, operand.length - 2), ['RegisterDataOperand', 'ReferenceDataOperand']) as RegisterDataOperand | ReferenceDataOperand;
+					inner = this.resolve_operand(inner_str, ['RegisterDataOperand', 'ReferenceDataOperand']) as RegisterDataOperand | ReferenceDataOperand;
 				} catch {
 				}
 				if (inner != undefined) {

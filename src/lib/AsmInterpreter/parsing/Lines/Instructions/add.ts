@@ -15,44 +15,41 @@ import {
 } from '$lib/AsmInterpreter/system/DataOperand';
 import type { RuntimeTrace } from '$lib/AsmInterpreter/Trace';
 
-export class MovBuilder extends InstructionFactory {
+export class addBuilder extends InstructionFactory {
 
 	constructor() {
 		let opts: InstructionLineOptions = {
-			description: 'increases the value in the operand by one',
-			name: 'increment',
-			supported: true,
-			tag: /^(\s*mov\s*\w+,\s*\w+)$/
+			description: 'adds parameter 2 to parameter 1', name: 'add', supported: true, tag: /^(\s*add\s*\[?\w+]?,\s*\[?\w+]?)$/
 		};
 		super(opts);
 	}
 
 	apply_parse(line: UnparsedLOC, _parse: ParseState): InstructionFactoryApplyParseReturnType {
+
 		try {
+
 			let parts = line.text.split(' ');
+			let param_1 = parts[1].trim();
+			let param_2 = parts[2].trim();
 
-			let dest_str = parts[1].trim();
-			let last_char = dest_str.charAt(dest_str.length - 1);
+			let last_char = param_1.charAt(param_1.length - 1);
 			if (last_char != ',') {
-				return { line: { type: 'invalid', message: 'could not parse mov instruction', loc: line } };
+				return { line: { type: 'invalid', message: 'could not parse add instruction', loc: line } };
 			}
-			dest_str = dest_str.substring(0, dest_str.length - 1);
+			param_1 = param_1.substring(0, param_1.length - 1);
 
-			let src_str = parts[2].trim();
 
-			let mov = new Mov(dest_str, src_str, line);
-			return { line: { type: 'instruction', runtime: mov, loc: line } };
-
-		} catch (e) {
-			console.debug(`could not parse mov instruction ${e}`)
-			return { line: { type: 'invalid', message: 'could not parse mov instruction', loc: line } };
+			let instruction = new add(param_1, param_2, line);
+			return { line: { type: 'instruction', runtime: instruction, loc: line } };
+		} catch {
+			return { line: { type: 'invalid', message: 'cannot parse add instruction', loc: line } };
 		}
 
 	}
 
 }
 
-export class Mov extends ExecutableLine {
+export class add extends ExecutableLine {
 	dest: RegisterDataOperand | PointerDataOperand;
 	src: RegisterDataOperand | PointerDataOperand | ReferenceDataOperand | ImmediateDataOperand;
 	requested_variable_address_resolutions: Map<string, number | null> = new Map();
@@ -64,8 +61,7 @@ export class Mov extends ExecutableLine {
 	}
 
 	execute(trace: RuntimeTrace, system: vSystem): undefined {
-		console.debug(`inc ${this.dest.value}`);
-		let src_val = this.src.get(trace,system, this.requested_variable_address_resolutions);
-		this.dest.set(trace,src_val, system, this.requested_variable_address_resolutions);
+		console.debug(`add ${this.dest.value} ${this.src.value}`);
+		this.dest.add(trace,this.src.get(trace,system, this.requested_variable_address_resolutions), system, this.requested_variable_address_resolutions);
 	}
 }

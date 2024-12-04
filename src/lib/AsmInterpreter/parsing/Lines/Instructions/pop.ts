@@ -1,12 +1,13 @@
 import type { vSystem } from '$lib/AsmInterpreter/system/vSystem';
 import { ExecutableLine } from '$lib/AsmInterpreter/parsing/Lines/Line';
 import {
-	InstructionFactory, type InstructionFactoryApplyParseReturnType, type InstructionLineOptions
+	InstructionFactory,
+	type InstructionFactoryApplyParseReturnType,
+	type InstructionLineOptions
 } from '$lib/AsmInterpreter/parsing/Lines/Instructions/InstructionFactory';
 import type { UnparsedLOC } from '$lib/AsmInterpreter/parsing/SegmentType';
 import { type ParseState } from '$lib/AsmInterpreter/parsing/ParseState';
-import type { ReferenceDataOperand, RegisterDataOperand } from '$lib/AsmInterpreter/system/DataOperand';
-import { REGISTER_ADDRESS_MAP } from '$lib/AsmInterpreter/system/RegisterBuilders';
+import type { RegisterDataOperand } from '$lib/AsmInterpreter/system/DataOperand';
 import type { RuntimeTrace } from '$lib/AsmInterpreter/Trace';
 
 export class PopBuilder extends InstructionFactory {
@@ -22,17 +23,21 @@ export class PopBuilder extends InstructionFactory {
 	}
 
 	apply_parse(line: UnparsedLOC, _parse: ParseState): InstructionFactoryApplyParseReturnType {
+		try {
 
-		let parts = line.text.split(' ');
-		let dest_str = parts[1].trim();
+			let parts = line.text.split(' ');
+			let dest_str = parts[1].trim();
 
-		console.debug(`applying push with dest ${dest_str}`);
+			console.debug(`applying push with dest ${dest_str}`);
 
+			let pop = new Pop(dest_str, line);
+			return { line: { type: 'instruction', runtime: pop, loc: line } };
+		} catch {
+			return {
+				line: { type: 'invalid', message: 'could not parse pop instruction', loc: line }
+			};
+		}
 
-
-		return {
-			line: { type: 'invalid', message: 'push is only valid for 32 bit values', loc: line }
-		};
 
 	}
 
@@ -49,6 +54,6 @@ export class Pop extends ExecutableLine {
 
 	execute(trace: RuntimeTrace, system: vSystem): undefined {
 		let val = system.stack_pop(trace);
-		this.dest.set(val, system, this.requested_variable_address_resolutions);
+		this.dest.set(trace,val, system, this.requested_variable_address_resolutions);
 	}
 }

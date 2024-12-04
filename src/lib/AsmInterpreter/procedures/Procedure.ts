@@ -7,7 +7,6 @@ import { ExecutableNoOpLine } from '$lib/AsmInterpreter/parsing/Lines/Line';
 export class Procedure {
 	memory_footprint: number;
 	lines: RuntimeLine[];
-	label_map: Map<string, number>;
 	ref: ProcReference;
 
 	constructor(builder: ProcedureBuilder) {
@@ -21,13 +20,12 @@ export class Procedure {
 			}
 		}
 
-		this.label_map = builder.label_map;
 		this.memory_footprint = builder.memory_footprint;
 		this.ref = builder.get_ref();
 	}
 
 	get_executor() {
-		return new ProcedureExecutor(this.lines, this.label_map, this.memory_footprint);
+		return new ProcedureExecutor(this.lines, this.memory_footprint);
 	}
 
 }
@@ -35,13 +33,11 @@ export class Procedure {
 export class ProcedureExecutor {
 	memory_footprint: number;
 	lines: RuntimeLine[];
-	label_map: Map<string, number>;
 	current_line: number;
 
-	constructor(lines: RuntimeLine[], labels: Map<string, number>, memory_footprint: number) {
+	constructor(lines: RuntimeLine[], memory_footprint: number) {
 		this.lines = lines;
 		this.current_line = 0;
-		this.label_map = labels;
 		this.memory_footprint = memory_footprint;
 	}
 

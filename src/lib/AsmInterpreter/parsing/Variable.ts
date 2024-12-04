@@ -6,9 +6,16 @@ export interface VariableIdentifier {
 
 export class Variable {
 	legal_models: string[] = [];
+	bytes: number[];
+	inc_size: number;
+
+	constructor(bytes: number[], inc_size: number) {
+		this.bytes = bytes;
+		this.inc_size = inc_size
+	}
 
 	to_bytes():number[] {
-		throw `TODO: implement variables`
+		return this.bytes;
 	}
 
 	add_model_scope(model: string) {

@@ -14,15 +14,21 @@
 	let register_ESP = $state(0);
 	let register_EBP = $state(0);
 
-	let console_lines: string[] = $state([])
+	let errored = false;
+
+	let start_stop_box_text = $state('start');
+
+	let console_lines: string[] = $state([]);
 
 	let register_IP = $state(0);
+
+	const displayed_stack_size = 20;
 
 	let stack_display = $state((() => {
 		let dis: string[] = [];
 
-		for (let i = 0; i < 10; i++) {
-			dis.push('----------');
+		for (let i = 0; i < displayed_stack_size; i++) {
+			dis.push(`---------- : --------`);
 		}
 
 		return dis;
@@ -36,8 +42,12 @@
 	let step_delay = $state(10);
 	let display_step_delay = $state('???');
 
-	function toggle_autostep() {
-
+	async function autostep() {
+		console.log('auto triggered step');
+		if (autostepping) {
+			await step_request();
+			step_timer = setTimeout(autostep, steps[step_delay]);
+		}
 	}
 
 	function step_delay_update() {
@@ -49,24 +59,65 @@
 		} else {
 			display_step_delay = `${(delay / 1000).toFixed(0)}s`;
 		}
+
+		if (autostepping && step_timer != undefined) {
+			clearTimeout(step_timer);
+			step_timer = setTimeout(autostep, steps[step_delay]);
+		}
 	}
 
-	step_delay_update();
+	let step_timer: number | undefined;
+	let autostepping = false;
+
+	function toggle_autostep() {
+		if (autostepping) {
+			console.log('disabling autostep');
+			autostepping = false;
+			if (step_timer != undefined) {
+				clearTimeout(step_timer);
+			}
+			step_timer = undefined;
+			start_stop_box_text = 'start';
+		} else {
+			console.log('enabling autostep');
+			autostepping = true;
+			if (step_timer == undefined) {
+				step_timer = setTimeout(autostep, steps[step_delay]);
+			}
+			start_stop_box_text = 'stop';
+		}
+
+	}
 
 	async function build_request() {
 		built = 1;
-		let system = await Interpreter.build();
-		update_display(system);
-		built = 2;
+		try {
+			let sys = await Interpreter.reset();
+			update_display(sys);
+			built = 2;
+		} catch {
+			built = 0;
+		}
 	}
 
 	async function step_request() {
+		if (errored) {
+			await build_request();
+			return;
+		}
+
 		let interpreter = await Interpreter.get_instance();
 		try {
 			let system = interpreter.step_program();
 			update_display(system);
 		} catch (err: any) {
-			console_lines.push(err.toString())
+			let es = err.toString();
+			console_lines.push(es);
+			console.debug(es);
+			if (autostepping) {
+				toggle_autostep();
+			}
+			errored = true;
 		}
 	}
 
@@ -83,19 +134,23 @@
 
 		register_IP = system.instruction_pointer;
 
-		let stack_values = system.get_stack(10);
+		let stack_values = system.get_stack(displayed_stack_size);
 		let dis = [];
-		for (let stack_offset = 9; stack_offset >= 0; stack_offset--) {
+		for (let stack_offset = displayed_stack_size - 1; stack_offset >= 0; stack_offset--) {
 			let val: number = stack_values[stack_offset];
 			if (val != undefined) {
-				dis.push(`0x${val.toString(16).padStart(8, '0')}`);
+				let hex = `0x${val.toString(16).padStart(8, '0')}`;
+				let dec = `${val.toString().padEnd(8, '-')}`;
+				dis.push(`${hex} : ${dec}`);
 			} else {
-				dis.push(`----------`);
+				dis.push(`---------- : --------`);
 			}
 
 		}
 
 		stack_display = dis;
+
+		step_delay_update();
 
 	}
 
@@ -152,7 +207,7 @@
 				</span>
 			</div>
 			<div class="display-row">
-				<button class="control" onclick={toggle_autostep}>start</button>
+				<button class="control" onclick={toggle_autostep}>{start_stop_box_text}</button>
 				<button class="control" onclick={step_request}>step</button>
 				<button class="control" onclick={build_request}>rebuild</button>
 			</div>
@@ -170,7 +225,7 @@
 
 <div class="console-wrapper">
 	{#each console_lines as line}
-		<span>{line}</span>
+		<span>> {line}</span>
 	{/each}
 </div>
 
@@ -184,11 +239,10 @@
     display: flex;
     justify-content: center;
     position: absolute;
-    //background: $panel-background-color;
-		//background: pink;
     color: #d4d4d4;
     overflow-x: hidden;
     overflow-y: auto;
+    flex-direction: column;
     left: 0;
     bottom: 0;
     height: calc(20vh - 10px);

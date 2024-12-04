@@ -18,6 +18,12 @@ export class vSystem {
 	public memory_instruction_mapping: InstructionLnReference[];
 	public instruction_memory_mapping: Map<string, number>;
 	public instruction_pointer: number;
+	public status_equal_to: boolean = false;
+	public status_greater_then: boolean = false;
+	public status_less_then: boolean = false;
+	public status_zero_res: boolean = false;
+
+	public console_output: string[]
 
 	constructor(static_alloc: DataView, static_offset: number, main: ProcReference, instruction_mapping: InstructionLnReference[]) {
 		this.memory = new SystemMemory(static_alloc, static_offset);
@@ -25,6 +31,7 @@ export class vSystem {
 		this.current_proc = main;
 		this.memory_instruction_mapping = instruction_mapping;
 		this.instruction_memory_mapping = new Map();
+		this.console_output = []
 
 		// construct instruction=>memory  map
 		for (let i = 0; i < instruction_mapping.length; i++) {

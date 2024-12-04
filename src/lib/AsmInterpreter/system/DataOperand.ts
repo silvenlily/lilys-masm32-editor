@@ -1,6 +1,7 @@
 import type { RegisterAddress } from '$lib/AsmInterpreter/system/Register';
 import type { MemoryAddress } from '$lib/AsmInterpreter/system/MemoryAddress';
 import { type vSystem } from '$lib/AsmInterpreter/system/vSystem';
+import type { RuntimeTrace } from '$lib/AsmInterpreter/Trace';
 
 export type LegalOperandTags =
 	'PointerDataOperand'
@@ -12,14 +13,14 @@ abstract class BaseDataOperand {
 	abstract type: LegalOperandTags;
 	abstract value: number | string | RegisterAddress | MemoryAddress | ReferenceDataOperand | RegisterDataOperand;
 
-	add(val: number, system: vSystem, reference_map: Map<string, number | null>): undefined {
-		let current = this.get(system, reference_map);
-		this.set(current + val, system, reference_map);
+	add(trace: RuntimeTrace, val: number, system: vSystem, reference_map: Map<string, number | null>): undefined {
+		let current = this.get(trace, system, reference_map);
+		this.set(trace, current + val, system, reference_map);
 	}
 
-	abstract set(val: number, system: vSystem, reference_map: Map<string, number | null>): undefined;
+	abstract set(trace: RuntimeTrace, val: number, system: vSystem, reference_map: Map<string, number | null>): undefined;
 
-	abstract get(system: vSystem, reference_map: Map<string, number | null>): number;
+	abstract get(trace: RuntimeTrace, system: vSystem, reference_map: Map<string, number | null>): number;
 
 }
 
@@ -32,20 +33,20 @@ export class ReferenceDataOperand extends BaseDataOperand {
 		this.value = value;
 	}
 
-	get(_system: vSystem, reference_map: Map<string, number | null>): number {
-		return this.get_reqested_address(this.value,reference_map)
+	get(trace: RuntimeTrace, _system: vSystem, reference_map: Map<string, number | null>): number {
+		return this.get_reqested_address(this.value, reference_map);
 	}
 
-	set(_val: number, _system: vSystem, _reference_map: Map<string, number | null>): undefined {
-		throw `illegal operation, cannot change a reference, did you mean to use this as a pointer?`
+	set(trace: RuntimeTrace, _val: number, _system: vSystem, _reference_map: Map<string, number | null>): undefined {
+		throw `illegal operation, cannot change a reference, did you mean to use this as a pointer?`;
 	}
 
-	get_reqested_address(req:string,ref_map:Map<string, number | null>): number {
+	get_reqested_address(req: string, ref_map: Map<string, number | null>): number {
 		let address = ref_map.get(req);
 		if (typeof address != 'number') {
 			throw `Interpreter integrity check failed, unresolved variable address reference ${req} instruction: ${JSON.stringify(this)}`;
 		}
-		return address
+		return address;
 	}
 
 }
@@ -55,16 +56,18 @@ export class PointerDataOperand extends BaseDataOperand {
 	value: ReferenceDataOperand | RegisterDataOperand;
 
 	constructor(value: ReferenceDataOperand | RegisterDataOperand) {
-		super()
+		super();
 		this.value = value;
 	}
 
-	get(system: vSystem, reference_map: Map<string, number | null>): number {
-		return this.value.get(system,reference_map)
+	get(trace: RuntimeTrace, system: vSystem, reference_map: Map<string, number | null>): number {
+		let addr = this.value.get(trace, system, reference_map);
+		return system.memory.get_int(trace, addr);
 	}
 
-	set(val: number, system: vSystem, reference_map: Map<string, number | null>): undefined {
-		this.value.set(val,system,reference_map)
+	set(trace: RuntimeTrace, val: number, system: vSystem, reference_map: Map<string, number | null>): undefined {
+		let addr = this.value.get(trace, system, reference_map);
+		system.memory.set_int(trace, addr, val);
 	}
 
 }
@@ -74,24 +77,24 @@ export class RegisterDataOperand extends BaseDataOperand {
 	value: RegisterAddress;
 
 	constructor(value: RegisterAddress) {
-		super()
+		super();
 		this.value = value;
 	}
 
-	get(system: vSystem, _reference_map: Map<string, number | null>): number {
+	get(trace: RuntimeTrace, system: vSystem, _reference_map: Map<string, number | null>): number {
 		let register = system.registers.get(this.value.full_tag);
-		if(register == undefined) {
-			throw "unknown register access"
+		if (register == undefined) {
+			throw 'unknown register access';
 		}
-		return register.get(this.value.tag_category)
+		return register.get(this.value.tag_category);
 	}
 
-	set(val: number, system: vSystem, _reference_map: Map<string, number | null>): undefined {
+	set(trace: RuntimeTrace, val: number, system: vSystem, _reference_map: Map<string, number | null>): undefined {
 		let register = system.registers.get(this.value.full_tag);
-		if(register == undefined) {
-			throw "unknown register access"
+		if (register == undefined) {
+			throw 'unknown register access';
 		}
-		register.set(val,this.value.tag_category)
+		register.set(val, this.value.tag_category);
 	}
 
 
@@ -102,16 +105,16 @@ export class ImmediateDataOperand extends BaseDataOperand {
 	value: number;
 
 	constructor(value: number) {
-		super()
+		super();
 		this.value = value;
 	}
 
-	get(_system: vSystem, _reference_map: Map<string, number | null>): number {
+	get(trace: RuntimeTrace, _system: vSystem, _reference_map: Map<string, number | null>): number {
 		return this.value;
 	}
 
-	set(_val: number, _system: vSystem, _reference_map: Map<string, number | null>): undefined {
-		throw `illegal operation, cannot change an immediate value`
+	set(trace: RuntimeTrace, _val: number, _system: vSystem, _reference_map: Map<string, number | null>): undefined {
+		throw `illegal operation, cannot change an immediate value`;
 	}
 
 }

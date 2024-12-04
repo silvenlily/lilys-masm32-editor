@@ -40,13 +40,21 @@
 		// create the interpreter singleton
 		new Interpreter(monaco, models, editor);
 
-		main.onDidChangeContent((_e) => {
-			Parser.get_parser().validate(models);
+		main.onDidChangeContent(async (_e) => {
+			try {
+				await Parser.get_parser().validate(models);
+			} catch (e: any) {
+				console.debug(`caught validate err ${e.toString()}`);
+			}
 		});
 		editor.setModel(main);
 
 		// create parser singleton and run validate on default main file
-		await Parser.get_parser().validate(models);
+		try {
+			await Parser.get_parser().validate(models);
+		} catch (e: any) {
+			console.debug(`caught validate err ${e.toString()}`);
+		}
 	});
 
 	onDestroy(() => {
@@ -56,7 +64,7 @@
 		// for obvious reasons onDestroy cant happen before onMount but the tsc doesn't know that
 		// so we have to do this silliness to make the tsc happy
 		let e: any = editor as any;
-		if(e != undefined) {
+		if (e != undefined) {
 			e.dispose();
 		}
 	});
@@ -68,13 +76,12 @@
 	<div class="container" bind:this={editorContainer}></div>
 </div>
 
-
 <style lang="scss">
   div.wrapper {
     position: absolute;
     left: $editor-left-edge;
     right: $editor-right-edge;
-    bottom: 20vh;
+    bottom: 0;
     top: 0;
     background: $panel-background-color;
     border-right-color: $panel-border-color;
@@ -88,6 +95,6 @@
   div.container {
     margin-top: 2px;
     width: 100%;
-    height: calc(80vh - $navbar-height);
+    height: calc(100vh - $navbar-height);
   }
 </style>

@@ -9,7 +9,9 @@ export class ParseState {
 	errors: ParseError[];
 	buildable: boolean;
 
-	procedures: Map<ProcReference, ProcedureBuilder>;
+	enabled_native_procs: string[]
+
+	procedures: Map<string, ProcedureBuilder>;
 	line_references: Map<string, LineReference>;
 	current_proc?: ProcedureBuilder;
 	static_alloc?: DataView;
@@ -22,6 +24,7 @@ export class ParseState {
 		this.buildable = true;
 		this.file = file_path;
 		this.line_references = new Map();
+		this.enabled_native_procs = []
 	}
 
 }
