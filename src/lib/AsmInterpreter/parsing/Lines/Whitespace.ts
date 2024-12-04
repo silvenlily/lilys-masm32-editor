@@ -13,8 +13,8 @@ export class Whitespace extends LineParser {
 		this.whitespace_type = type;
 	}
 
-	override apply_parse(_line: UnparsedLOC, parse: ParseState): { line: tagged_directive_line } {
-		return { line: { type: 'directive', instruction: this } };
+	override apply_parse(line: UnparsedLOC, _parse: ParseState): { line: tagged_directive_line } {
+		return { line: { type: 'directive', instruction: this, loc: line } };
 	}
 }
 

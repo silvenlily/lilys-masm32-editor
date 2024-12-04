@@ -17,6 +17,7 @@ export interface InstructionLineOptions {
 }
 
 export class InstructionFactory extends LineParser {
+
 	constructor(opts: InstructionLineOptions) {
 
 		let lnOpts: LineOptions = {
@@ -30,4 +31,5 @@ export class InstructionFactory extends LineParser {
 
 		super(lnOpts, 'Instruction');
 	}
+
 }

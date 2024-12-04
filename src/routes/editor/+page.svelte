@@ -4,8 +4,6 @@
 	import DebugPanel from '$lib/DebugPanel/DebugPanel.svelte';
 </script>
 
-<FileExplorer></FileExplorer>
-
 <DebugPanel></DebugPanel>
 
 <Editor></Editor>

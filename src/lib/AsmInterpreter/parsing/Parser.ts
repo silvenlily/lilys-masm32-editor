@@ -9,12 +9,20 @@ import {
 	type tagged_unparsed_line
 } from '$lib/AsmInterpreter/parsing/Lines/LineParser';
 import { ParseState } from '$lib/AsmInterpreter/parsing/ParseState';
-import { type ProcReference, type SegmentType, SegmentTypes } from '$lib/AsmInterpreter/parsing/SegmentType';
+import {
+	type InstructionLnReference,
+	proc_reference_to_key,
+	type ProcReference,
+	type SegmentType,
+	SegmentTypes
+} from '$lib/AsmInterpreter/parsing/SegmentType';
 import { get_directives } from '$lib/AsmInterpreter/parsing/Lines/Directives/DirectiveStore';
 import { EmptyInstructionLine, WhitespaceLineTypes } from '$lib/AsmInterpreter/parsing/Lines/Whitespace';
 import { get_instructions } from '$lib/AsmInterpreter/parsing/Lines/Instructions/InstructionStore';
 import type { Program } from '$lib/AsmInterpreter/Program';
 import { Procedure } from '$lib/AsmInterpreter/procedures/Procedure';
+import { MAX_PAGE_OFFSET_BYTES } from '$lib/AsmInterpreter/system/MemoryAddress';
+import type { VariableIdentifier } from '$lib/AsmInterpreter/parsing/Variable';
 
 /**
  * Parses Masm32
@@ -22,6 +30,7 @@ import { Procedure } from '$lib/AsmInterpreter/procedures/Procedure';
 class Parser {
 	private static singleton: Parser;
 	public line_keys: LineKeyMap;
+	private lastparse_errors?: Monaco.editor.IMarkerData[];
 
 	private constructor() {
 
@@ -111,7 +120,7 @@ class Parser {
 			let buildable = true;
 			for (let model_index = 0; model_index < model_parses.length; model_index++) {
 				let errors = await this.flush_errors(model_parses[model_index].parse);
-				(await Interpreter.get_instance()).monaco.editor.setModelMarkers(model_parses[model_index].model, model_parses[model_index].model.uri.toString(), errors);
+				(await Interpreter.get_instance()).monaco.editor.setModelMarkers(model_parses[model_index].model, "parse-errors", errors);
 				if (!model_parses[model_index].parse.buildable) {
 					buildable = false;
 				}
@@ -130,7 +139,7 @@ class Parser {
 		});
 	}
 
-	public async build(models: Map<string, Monaco.editor.ITextModel>, path: string): Promise<Program> {
+	public async build(models: Map<string, Monaco.editor.ITextModel>): Promise<Program> {
 		return new Promise(async (resolve, reject) => {
 
 			// convert models into proc builders
@@ -146,29 +155,84 @@ class Parser {
 				return;
 			}
 
-			let procedures: Map<ProcReference, Procedure> = new Map();
+			let procedures: Map<string, Procedure> = new Map();
 
 			// build all procedures
 			parse.procedures.forEach((proc_builder, name) => {
 				let proc = new Procedure(proc_builder);
-				procedures.set(proc.ref, proc);
+				procedures.set(proc_reference_to_key(proc.ref), proc);
 			});
 
+			const main_ref: ProcReference = { model: 'file:///vfs/main.asm', name: 'main' };
 			// identify main
-			let main = procedures.get({ model: '/vfs/main.asm', name: 'main' });
+			let main = procedures.get(proc_reference_to_key(main_ref));
 			if (main == undefined) {
 				let parser_build_end = performance.now();
 				console.error(`parser build failed in ${parser_build_end - parser_build_start}ms, no main function (this should have failed during linking, why didnt it?)`);
+				console.error(`all procs: "${procedures.entries().map((proc) => {
+					return JSON.stringify(main_ref);
+				}).toArray().join(', ')}"`);
+				console.error(`searching for: ${JSON.stringify(main_ref)}`);
 				reject();
 				return;
 			}
 
+			// estimate # of instruction pages
+			let instruction_pages;
+			let ln_mapping: InstructionLnReference[] = []
+			{
+				let total_lines = 0;
+				procedures.forEach((proc) => {
+					for (let line_number = 0; line_number < proc.lines.length; line_number++) {
+						ln_mapping.push({proc: proc.ref, ln:line_number})
+					}
+				});
+				instruction_pages = Math.ceil(total_lines / MAX_PAGE_OFFSET_BYTES);
+			}
+
+			let byte_offset = instruction_pages * MAX_PAGE_OFFSET_BYTES;
+			// resolve variables to bytes
+			let bytes: number[] = [];
+			let res_map: Map<VariableIdentifier, number> = new Map<VariableIdentifier, number>;
+			parse.variables.forEach((variable, identifier) => {
+				res_map.set(identifier, bytes.length + byte_offset);
+				bytes = bytes.concat(variable.to_bytes());
+			});
+
+			// move all bytes into a new data view
+			let alloc = new DataView(new ArrayBuffer(bytes.length));
+			for (let index = 0; index < bytes.length; index++) {
+				alloc.setUint8(index, bytes[index]);
+			}
+
+			// now that all variables have been converted to bytes & we know their addresses we can resolve variable references to addresses
+			procedures.forEach((proc, proc_ref) => {
+				proc.lines.forEach((line, line_index) => {
+					if (line.runtime != undefined && line.runtime.requested_variable_address_resolutions != undefined) {
+						let line_resolutions: Map<string, number> = new Map();
+						line.runtime.requested_variable_address_resolutions.forEach((_, search_key) => {
+							parse.variables.forEach((variable, var_key) => {
+								if (var_key.variable_name == search_key && variable.is_valid_in_scope(proc.ref.model)) {
+									// all references were checked during validation, so it should be impossible for this not to resolve
+									let var_addr = res_map.get(var_key);
+									if (var_addr == undefined) {
+										throw `Invalid variable address resolution state`;
+									}
+									line_resolutions.set(search_key, var_addr);
+								}
+							});
+						});
+						line.runtime.requested_variable_address_resolutions = line_resolutions;
+					}
+				});
+			});
+
 			let program: Program = {
-				main: main, procedures: procedures, static_alloc: parse.static_alloc!
+				main: main, procedures: procedures, static_alloc: alloc, static_offset: instruction_pages, ln_mapping: ln_mapping
 			};
 
 			let parser_build_end = performance.now();
-			console.error(`parser build succeeded in ${parser_build_end - parser_build_start}ms`);
+			console.log(`parser build succeeded in ${parser_build_end - parser_build_start}ms`);
 			resolve(program);
 
 		});
@@ -191,7 +255,7 @@ class Parser {
 				line.loc.text = line.loc.text.toLowerCase();
 
 				if (line.loc.text.length == 0) {
-					parsing_lines[i] = { type: 'directive', instruction: EmptyInstructionLine };
+					parsing_lines[i] = { type: 'directive', instruction: EmptyInstructionLine, loc: line.loc };
 				}
 
 
@@ -258,6 +322,9 @@ class Parser {
 						parse = parse_result.state ?? parse;
 						let parse_result_ln = parse_result.line;
 						parsing_lines[line_index] = parse_result_ln;
+						if(parse.current_proc != undefined) {
+							parse.current_proc?.add_ln(parse_result_ln)
+						}
 
 						if (parse_result_ln.type == 'invalid') {
 							parse.errors.push({
@@ -372,11 +439,11 @@ class Parser {
 		let errs = parse.errors;
 		parse.errors = [];
 
-		const markers: Monaco.editor.IMarkerData[] = new Array(errs.length);
+		this.lastparse_errors = new Array(errs.length);
 
 		for (let i = 0; i < errs.length; i++) {
 			let err = errs[i];
-			markers[i] = {
+			this.lastparse_errors[i] = {
 				startColumn: err.position.startColumn + 1,
 				endColumn: err.position.endColumn + 1,
 				startLineNumber: err.position.startLineNumber,
@@ -390,7 +457,13 @@ class Parser {
 			}
 		}
 
-		return markers;
+		// return a copy of the errors rather than the errors themselves
+		return this.lastparse_errors.concat([]);
+	}
+
+	get_last_error_markers() {
+		// return a copy of the errors rather than the errors themselves
+		return (this.lastparse_errors ?? []).concat([]);
 	}
 
 	private create_parsing_lines(str_lines: string[]): ParsingLine[] {

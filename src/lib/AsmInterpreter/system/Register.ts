@@ -79,6 +79,48 @@ export class Register {
 		this.underlying.setUint8(24, value);
 	}
 
+	get(segment: SegmentTag) {
+		switch (segment) {
+			case 'int': {
+				return this.get_int();
+			}
+			case 'short': {
+				return this.get_short();
+			}
+			case 'byte_upper': {
+				return this.get_byte_upper();
+			}
+			case 'byte_lower': {
+				return this.get_byte_lower();
+			}
+			default:
+				throw 'unknown register segment tag';
+		}
+	}
+
+	set(value: number, segment: SegmentTag) {
+		switch (segment) {
+			case 'int': {
+				this.set_int(value);
+				break;
+			}
+			case 'short': {
+				this.set_short(value);
+				break;
+			}
+			case 'byte_upper': {
+				this.set_byte_upper(value);
+				break;
+			}
+			case 'byte_lower': {
+				this.set_byte_lower(value);
+				break;
+			}
+			default:
+				throw 'unknown register segment tag';
+		}
+	}
+
 	add(operand: number, segment: SegmentTag): boolean {
 		switch (segment) {
 			case 'int': {

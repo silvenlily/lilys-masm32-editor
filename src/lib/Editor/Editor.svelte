@@ -11,7 +11,7 @@
 	let monaco: typeof Monaco;
 	let editorContainer: HTMLElement;
 
-	let models: Map<String, Monaco.editor.ITextModel>;
+	let models: Map<string, Monaco.editor.ITextModel>;
 
 	onMount(async () => {
 		models = new Map();
@@ -35,10 +35,10 @@
 			'asm',
 			monaco.Uri.file('/vfs/main.asm')
 		);
-		models.set('/vfs/main.asm', main);
+		models.set(main.uri.toString(), main);
 
 		// create the interpreter singleton
-		new Interpreter(monaco);
+		new Interpreter(monaco, models, editor);
 
 		main.onDidChangeContent((_e) => {
 			Parser.get_parser().validate(models);
@@ -74,7 +74,7 @@
     position: absolute;
     left: $editor-left-edge;
     right: $editor-right-edge;
-    bottom: 0;
+    bottom: 20vh;
     top: 0;
     background: $panel-background-color;
     border-right-color: $panel-border-color;
@@ -88,6 +88,6 @@
   div.container {
     margin-top: 2px;
     width: 100%;
-    height: calc(100vh - $navbar-height);
+    height: calc(80vh - $navbar-height);
   }
 </style>

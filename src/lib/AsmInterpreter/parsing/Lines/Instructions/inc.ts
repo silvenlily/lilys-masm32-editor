@@ -10,14 +10,14 @@ import type {
 } from '$lib/AsmInterpreter/system/DataOperand';
 import type { RuntimeTrace } from '$lib/AsmInterpreter/Trace';
 
-export class DecBuilder extends InstructionFactory {
+export class IncBuilder extends InstructionFactory {
 
 	constructor() {
 		let opts: InstructionLineOptions = {
-			description: 'decreases the value in the operand by one',
-			name: 'decrement',
+			description: 'increases the value in the operand by one',
+			name: 'increment',
 			supported: true,
-			tag: /^(\s*dec\s*\w*)$/
+			tag: /^(\s*inc\s*\w*)$/
 		};
 		super(opts);
 	}
@@ -27,25 +27,17 @@ export class DecBuilder extends InstructionFactory {
 		let parts = line.text.split(' ');
 		let dest_str = parts[1].trim();
 
-		console.log(`applying dec with dest ${dest_str}`);
-
 		try {
-			let runtime = new Dec(dest_str, line);
-			return {
-				line: { type: 'instruction', runtime: runtime, loc: line }
-			};
+			let inc = new Inc(dest_str, line);
+			return { line: { type: 'instruction', runtime: inc, loc: line } };
 		} catch {
-			return {
-				line: { type: 'invalid', message: 'cannot parse decrement instruction', loc: line }
-			};
+			return { line: {type: 'invalid', message: 'could not parse increment line' ,loc: line}}
 		}
-
-
 	}
 
 }
 
-export class Dec extends ExecutableLine {
+export class Inc extends ExecutableLine {
 	dest: RegisterDataOperand | PointerDataOperand;
 	requested_variable_address_resolutions: Map<string, number | null> = new Map();
 
@@ -55,7 +47,7 @@ export class Dec extends ExecutableLine {
 	}
 
 	execute(trace: RuntimeTrace, system: vSystem): undefined {
-		console.debug(`dec ${this.dest.value}`);
-		this.dest.add(-1, system, this.requested_variable_address_resolutions);
+		console.debug(`inc ${this.dest.value}`);
+		this.dest.add(1, system, this.requested_variable_address_resolutions);
 	}
 }

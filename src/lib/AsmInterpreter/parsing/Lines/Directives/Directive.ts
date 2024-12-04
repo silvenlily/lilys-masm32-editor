@@ -1,5 +1,9 @@
 import {
-	LineParser, type tagged_directive_line, type tagged_executable_line, type tagged_invalid_line
+	LineParser,
+	type tagged_directive_line,
+	type tagged_executable_line,
+	type tagged_invalid_line,
+	type tagged_linkable_line
 } from '$lib/AsmInterpreter/parsing/Lines/LineParser';
 import type { LineOptions, UnparsedLOC } from '$lib/AsmInterpreter/parsing/SegmentType';
 import type { ParseState } from '$lib/AsmInterpreter/parsing/ParseState';
@@ -9,15 +13,15 @@ const DirectiveCategoryNames = ['code_labels', 'conditional_assembly', 'conditio
 type DirectiveCategoryName = (typeof DirectiveCategoryNames)[number]
 
 export type DirectiveApplyParseReturnValue = {
-	line: tagged_directive_line | tagged_invalid_line, state?: ParseState
+	line: tagged_directive_line | tagged_invalid_line | tagged_linkable_line, state?: ParseState
 }
 
 export class Directive extends LineParser {
 	type: 'Directive' = 'Directive';
 	directive_category: string;
 
-	override apply_parse(_line: UnparsedLOC, parse: ParseState): DirectiveApplyParseReturnValue {
-		return { line: { type: 'directive', instruction: this } };
+	override apply_parse(line: UnparsedLOC, parse: ParseState): DirectiveApplyParseReturnValue {
+		return { line: { type: 'directive', instruction: this, loc: line  } };
 	}
 
 	public constructor(options: DirectiveInstructionLineOptions, category: DirectiveCategoryName) {

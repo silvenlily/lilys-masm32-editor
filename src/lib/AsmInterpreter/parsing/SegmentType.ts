@@ -35,10 +35,23 @@ export interface LineReference {
 	proc: string,
 	line_number: number,
 	model: string,
-	scope: "local" | "global"
+	scope: 'local' | 'global'
 }
 
 export interface ProcReference {
 	name: string,
 	model: string,
+}
+
+export function proc_reference_to_key(ref: ProcReference): string {
+	return `${ref.model}|${ref.name}`;
+}
+
+export interface InstructionLnReference {
+	proc: ProcReference,
+	ln: number
+}
+
+export function instruction_reference_to_key(ref: InstructionLnReference): string {
+	return `${proc_reference_to_key(ref.proc)}:${ref.ln}`;
 }

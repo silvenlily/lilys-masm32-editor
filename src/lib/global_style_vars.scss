@@ -2,7 +2,7 @@
 // css vars are defined in the top level +layout.svelte
 
 $editor-right-edge: var(--editor-right-edge);
-$editor-left-edge: var(--editor-left-edge);
+$editor-left-edge: 1px;
 $panel-background-color: #1e1e1e;
 $panel-border-color: #2d2d2d;
 $panel-text-color: #858585;

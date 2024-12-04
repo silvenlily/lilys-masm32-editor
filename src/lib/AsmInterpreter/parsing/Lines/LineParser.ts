@@ -12,11 +12,11 @@ export type tagged_unparsed_line = {
 }
 
 export type tagged_directive_line = {
-	type: 'directive'; instruction: LineParser; runtime?: ExecutableLine
+	type: 'directive'; instruction: LineParser; runtime?: ExecutableLine; loc: UnparsedLOC
 }
 
 export type tagged_executable_line = {
-	type: 'instruction'; instruction?: LineParser; runtime: ExecutableLine;
+	type: 'instruction'; instruction?: LineParser; runtime: ExecutableLine; loc: UnparsedLOC;
 }
 
 export type tagged_invalid_line = {
@@ -52,7 +52,6 @@ export class LineParser {
 	unsupported_err_message: string;
 	legal_in_mode: SegmentType[];
 	link_only: boolean;
-	owning_proc?: string;
 
 	protected constructor(options: LineOptions, parser_type: LineType) {
 		this.type = parser_type;
@@ -66,7 +65,7 @@ export class LineParser {
 	}
 
 	apply_parse(loc: UnparsedLOC, _parse: ParseState): LineParserApplyParseReturnValue {
-		if(this.link_only) {
+		if (this.link_only) {
 			return { line: { type: 'linkable', instruction: this, loc: loc } };
 		}
 

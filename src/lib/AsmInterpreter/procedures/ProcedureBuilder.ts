@@ -1,8 +1,12 @@
-import type { RuntimeLine } from '$lib/AsmInterpreter/parsing/Lines/LineParser';
+import type {
+	ParsingLine,
+	tagged_directive_line,
+	tagged_executable_line, tagged_invalid_line, tagged_linkable_line, tagged_unparsed_line
+} from '$lib/AsmInterpreter/parsing/Lines/LineParser';
 import type { ProcReference } from '$lib/AsmInterpreter/parsing/SegmentType';
 
 export class ProcedureBuilder {
-	lines: RuntimeLine[] = [];
+	lines:ParsingLine[] = [];
 	label_map: Map<string, number> = new Map();
 	memory_footprint: number = 0;
 	proc_label;
@@ -14,7 +18,7 @@ export class ProcedureBuilder {
 		this.model = model;
 	}
 
-	add_ln(ln: RuntimeLine) {
+	add_ln(ln: ParsingLine) {
 		this.lines.push(ln);
 	}
 

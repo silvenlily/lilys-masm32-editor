@@ -2,54 +2,57 @@ import { Register, type RegisterAddress, type RegisterOptions } from '$lib/AsmIn
 
 export const registers_options: RegisterOptions[] = [{
 	addressing_options: {
-		register_tag: 'eax', segmentation_type: 'full', half_tag: 'AX', half_lower_tag: 'AH', half_upper_tag: 'AL'
+		register_tag: 'eax', segmentation_type: 'full', half_tag: 'ax', half_lower_tag: 'ah', half_upper_tag: 'al'
 	}
 }, {
 	addressing_options: {
-		register_tag: 'ebx', segmentation_type: 'full', half_tag: 'BX', half_lower_tag: 'BH', half_upper_tag: 'BL'
+		register_tag: 'ebx', segmentation_type: 'full', half_tag: 'bx', half_lower_tag: 'bh', half_upper_tag: 'bl'
 	}
 }, {
 	addressing_options: {
-		register_tag: 'ECX', segmentation_type: 'full', half_tag: 'CX', half_lower_tag: 'CH', half_upper_tag: 'CL'
+		register_tag: 'ecx', segmentation_type: 'full', half_tag: 'cx', half_lower_tag: 'ch', half_upper_tag: 'cl'
 	}
 }, {
 	addressing_options: {
-		register_tag: 'EDX', segmentation_type: 'full', half_tag: 'DX', half_lower_tag: 'DH', half_upper_tag: 'DL'
+		register_tag: 'edx', segmentation_type: 'full', half_tag: 'dx', half_lower_tag: 'dh', half_upper_tag: 'dl'
 	}
 }, {
 	addressing_options: {
-		register_tag: 'ESI',
+		register_tag: 'esi',
 		segmentation_type: 'partial',
-		half_tag: 'SI'
+		half_tag: 'si'
 	}
 }, {
 	addressing_options: {
-		register_tag: 'EDI',
+		register_tag: 'edi',
 		segmentation_type: 'partial',
-		half_tag: 'DI'
+		half_tag: 'di'
 	}
 }, {
 	addressing_options: {
-		register_tag: 'EBI',
+		register_tag: 'ebp',
 		segmentation_type: 'partial',
-		half_tag: 'BP'
+		half_tag: 'bp'
 	}
 }, {
 	addressing_options: {
-		register_tag: 'ESP',
+		register_tag: 'esp',
 		segmentation_type: 'partial',
-		half_tag: 'SP'
+		half_tag: 'sp'
 	}
-}, { addressing_options: { register_tag: 'EIP', segmentation_type: 'unsegmented' } }];
+}, { addressing_options: { register_tag: 'eip', segmentation_type: 'unsegmented' } }];
 
 export function generate_registers(): Map<string, Register> {
 	let registers: Map<string, Register> = new Map();
 
+	let reg_names: string[] = []
 	for (let i = 0; i < registers_options.length; i++) {
 		let reg_ops = registers_options[i];
 		registers.set(reg_ops.addressing_options.register_tag, new Register(reg_ops));
+		reg_names.push(reg_ops.addressing_options.register_tag)
 	}
 
+	console.debug(`generated registers: [${reg_names.join(", ")}]`)
 	return registers;
 }
 

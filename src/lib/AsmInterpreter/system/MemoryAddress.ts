@@ -2,20 +2,19 @@
 export const MEMORY_ADDRESS_SPACE = 32 as const;
 // number of bits in the page id
 export const PAGE_ID_SIZE = 20 as const;
-export const PAGE_ID_MASK = 0b11111111_11111111_11110000_00000000;
 // number of bits in the page offset
 export const PAGE_OFFSET_SIZE = 12 as const;
-export const PAGE_OFFSET_MASK = 0b00000000_00000000_00001111_11111111;
+export const PAGE_ID_MASK     = 0b1111_1111_1111_1111_1111_0000_0000_0000 as const;
+export const PAGE_OFFSET_MASK = 0b0000_0000_0000_0000_0000_1111_1111_1111 as const;
 
 // if these any of these fail the above config is invalid
-console.assert(MEMORY_ADDRESS_SPACE === PAGE_ID_SIZE + PAGE_OFFSET_SIZE, 'Improper memory address space config');
-console.assert(Math.pow(2, MEMORY_ADDRESS_SPACE) === (PAGE_ID_MASK ^ PAGE_OFFSET_MASK), 'Improper memory address space config');
-console.assert(Math.pow(2, PAGE_OFFSET_SIZE) === PAGE_OFFSET_MASK, 'Improper memory address space config');
-console.assert(Math.pow(2, PAGE_ID_SIZE) === (PAGE_ID_MASK >> PAGE_OFFSET_SIZE), 'Improper memory address space config');
+console.assert(MEMORY_ADDRESS_SPACE === PAGE_ID_SIZE + PAGE_OFFSET_SIZE, 'Improper memory address space config (non-matching address sizes)');
+console.assert(0 === ~(PAGE_ID_MASK ^ PAGE_OFFSET_MASK), 'Improper memory address space config (improper mask overlap)');
+console.assert(Math.pow(2, PAGE_OFFSET_SIZE) - 1 === PAGE_OFFSET_MASK, 'Improper memory address space config (improper page offset mask)');
 
 // how many bytes make up the page offset
-export const BYTES_PER_PAGE = Math.pow(2, PAGE_OFFSET_SIZE);
-export const BITS_PER_PAGE = BYTES_PER_PAGE * 8;
+export const MAX_PAGE_OFFSET_BYTES = Math.pow(2, PAGE_OFFSET_SIZE);
+export const BITS_PER_PAGE = MAX_PAGE_OFFSET_BYTES * 8;
 // how many total pages are available in the address space
 export const MAX_PAGE_ID = Math.pow(2, PAGE_ID_SIZE);
 export const TOTAL_MEMORY_ADDRESSES = Math.pow(2, MEMORY_ADDRESS_SPACE);

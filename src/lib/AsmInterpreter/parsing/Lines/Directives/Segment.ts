@@ -16,9 +16,9 @@ export class SegmentDirective extends Directive {
 	constructor(options: SegmentDirectiveParserOptions) {
 		super(options, 'segment');
 		this.next_segment = options.next_segment;
-		this.segment_parse = options.segment_parse ?? ((_l, p) => {
+		this.segment_parse = options.segment_parse ?? ((loc, p) => {
 			p.segment = this.next_segment;
-			return { line: { type: 'directive', instruction: this } };
+			return { line: { type: 'directive', instruction: this, loc: loc } };
 		});
 	}
 
@@ -54,7 +54,7 @@ export const ModelDirective = new SegmentDirective({
 		}
 
 		parse.segment = 'initialized';
-		return { line: { type: 'directive', instruction: ModelDirective } };
+		return { line: { type: 'directive', instruction: ModelDirective, loc: line } };
 	})
 });
 
@@ -77,7 +77,7 @@ export const CodeDirective = new SegmentDirective({
 		}
 
 		parse.segment = 'code';
-		return { line: { type: 'directive', instruction: ModelDirective } };
+		return { line: { type: 'directive', instruction: ModelDirective, loc: line  } };
 	})
 });
 
@@ -88,9 +88,9 @@ export const EndDirective = new SegmentDirective({
 	tag: new RegExp('^(end)$'),
 	legal_in_mode: ['code', 'data', 'const'],
 	next_segment: 'ended',
-	segment_parse: ((_line, parse): DirectiveApplyParseReturnValue => {
+	segment_parse: ((line, parse): DirectiveApplyParseReturnValue => {
 		parse.segment = 'ended';
-		return { line: { type: 'directive', instruction: EndDirective } };
+		return { line: { type: 'directive', instruction: EndDirective, loc: line  } };
 	})
 });
 
