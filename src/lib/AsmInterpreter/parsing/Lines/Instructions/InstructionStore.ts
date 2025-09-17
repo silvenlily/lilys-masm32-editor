@@ -17,6 +17,8 @@ import { jlBuilder } from '$lib/AsmInterpreter/parsing/Lines/Instructions/jl';
 import { jleBuilder } from '$lib/AsmInterpreter/parsing/Lines/Instructions/jle';
 import { jneBuilder } from '$lib/AsmInterpreter/parsing/Lines/Instructions/jne';
 import { jzBuilder } from '$lib/AsmInterpreter/parsing/Lines/Instructions/jz';
+import { shlBuilder } from '$lib/AsmInterpreter/parsing/Lines/Instructions/shl';
+import { shrBuilder } from '$lib/AsmInterpreter/parsing/Lines/Instructions/shr';
 
 export function get_instructions() {
 	let instructions: InstructionFactory[] = [
@@ -38,6 +40,8 @@ export function get_instructions() {
 		new jleBuilder(),
 		new jneBuilder(),
 		new jzBuilder(),
+		new shlBuilder(),
+		new shrBuilder(),
 	];
 	console.debug(`store loaded ${instructions.length} instructions`);
 	return instructions;
